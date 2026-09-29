@@ -8,8 +8,8 @@ enum SmartSplitConsent {
 
 /// Public pages served by GitHub Pages from `docs/` (also the URLs entered in App Store Connect).
 enum AppLinks {
-    static let privacyPolicy = URL(string: "https://qaz6209031.github.io/SplitEasy/privacy/")!
-    static let support = URL(string: "https://qaz6209031.github.io/SplitEasy/support/")!
+    static let privacyPolicy = URL(string: "https://kaichin.dev/SplitEasy/privacy/")!
+    static let support = URL(string: "https://kaichin.dev/SplitEasy/support/")!
 }
 
 /// Explains what Smart Split sends to the AI service. Used before the first Smart Split and from Settings.

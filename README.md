@@ -123,6 +123,6 @@ Add a new file in `supabase/migrations/` and run `supabase db push` (the DB pass
   - Don't set `[auth.email] enable_signup = false`: the CLI treats that as turning the whole email provider off, which also blocks the dev accounts from signing in.
 - **Mock AI:** keep `SMART_SPLIT_PROVIDER` unset so the mock is never used (it's unset now).
 - **Public pages** (GitHub Pages from `docs/`, also in `AppLinks`):
-  - Privacy Policy: https://qaz6209031.github.io/SplitEasy/privacy/
-  - Support: https://qaz6209031.github.io/SplitEasy/support/
+  - Privacy Policy: https://kaichin.dev/SplitEasy/privacy/
+  - Support: https://kaichin.dev/SplitEasy/support/
 - **Store listing drafts:** `docs/app-store/` (privacy label, listing, review notes; not published).
