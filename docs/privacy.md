@@ -1,3 +1,8 @@
+---
+title: Privacy Policy
+permalink: /privacy/
+---
+
 # SplitEasy Privacy Policy
 
 _Last updated: September 29, 2026_

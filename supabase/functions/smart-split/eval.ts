@@ -12,6 +12,9 @@ const secrets = await Deno.readTextFile(new URL("Config/Secrets.xcconfig", root)
 const key = secrets.match(/SUPABASE_PUBLISHABLE_KEY = (\S+)/)![1];
 const host = secrets.match(/SUPABASE_HOST = (\S+)/)![1];
 const url = `https://${host}`;
+// Dev account password base from the git-ignored Config/DevSecrets.xcconfig.
+const devSecrets = await Deno.readTextFile(new URL("Config/DevSecrets.xcconfig", root));
+const devPassword = devSecrets.match(/DEV_ACCOUNT_PASSWORD = (\S+)/)![1];
 
 async function call(path: string, init: RequestInit & { token?: string } = {}) {
   const headers: Record<string, string> = { apikey: key, "Content-Type": "application/json" };
@@ -22,7 +25,7 @@ async function call(path: string, init: RequestInit & { token?: string } = {}) {
 
 const login = await call("/auth/v1/token?grant_type=password", {
   method: "POST",
-  body: JSON.stringify({ email: "dev-alice@spliteasy.dev", password: "spliteasy-dev-alice" }),
+  body: JSON.stringify({ email: "dev-alice@spliteasy.dev", password: `${devPassword}-alice` }),
 });
 const token: string = login.body.access_token;
 const aliceId: string = login.body.user.id;

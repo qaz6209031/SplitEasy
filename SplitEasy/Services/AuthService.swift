@@ -118,9 +118,16 @@ final class AuthService {
 
     /// Signs in as a fixed test user via email/password, creating the account on first use.
     /// The name is passed as `full_name` so the profile trigger fills in the display name.
+    struct DevAccountNotConfigured: LocalizedError {
+        var errorDescription: String? { "Add Config/DevSecrets.xcconfig with DEV_ACCOUNT_PASSWORD (see README)." }
+    }
+
     func devSignIn(as name: String) async throws {
         let email = "dev-\(name.lowercased())@spliteasy.dev"
-        let password = "spliteasy-dev-\(name.lowercased())"
+        // The base password lives in the git-ignored Config/DevSecrets.xcconfig (Debug builds only).
+        let base = Bundle.main.object(forInfoDictionaryKey: "DevAccountPassword") as? String ?? ""
+        guard !base.isEmpty else { throw DevAccountNotConfigured() }
+        let password = "\(base)-\(name.lowercased())"
         do {
             try await supabase.auth.signIn(email: email, password: password)
         } catch {

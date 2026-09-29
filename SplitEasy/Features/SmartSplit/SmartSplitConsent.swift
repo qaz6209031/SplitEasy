@@ -6,9 +6,10 @@ enum SmartSplitConsent {
     static let storageKey = "smartSplitAIConsent.v1"
 }
 
+/// Public pages served by GitHub Pages from `docs/` (also the URLs entered in App Store Connect).
 enum AppLinks {
-    // TODO: Replace with the hosted privacy policy (docs/app-store/privacy-policy.md) before release.
-    static let privacyPolicy = URL(string: "https://example.com/spliteasy/privacy")!
+    static let privacyPolicy = URL(string: "https://qaz6209031.github.io/SplitEasy/privacy/")!
+    static let support = URL(string: "https://qaz6209031.github.io/SplitEasy/support/")!
 }
 
 /// Explains what Smart Split sends to the AI service. Used before the first Smart Split and from Settings.

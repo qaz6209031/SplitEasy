@@ -1,0 +1,6 @@
+title: SplitEasy
+description: Split shared expenses with friends and settle up with the fewest payments.
+theme: jekyll-theme-minimal
+# App Store working drafts live next to the site but aren't published.
+exclude:
+  - app-store

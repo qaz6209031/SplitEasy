@@ -19,7 +19,7 @@ targets:
     platform: iOS
     sources: [SplitEasy]
     configFiles:
-      Debug: Config/Secrets.xcconfig
+      Debug: Config/Debug.xcconfig
       Release: Config/Secrets.xcconfig
     dependencies:
       - package: Supabase
@@ -37,6 +37,8 @@ targets:
             CFBundleURLSchemes: [spliteasy]
         SupabaseHost: $(SUPABASE_HOST)
         SupabasePublishableKey: $(SUPABASE_PUBLISHABLE_KEY)
+        # Empty in Release: DEV_ACCOUNT_PASSWORD only exists in the Debug xcconfig.
+        DevAccountPassword: $(DEV_ACCOUNT_PASSWORD)
     entitlements:
       path: SplitEasy/SplitEasy.entitlements
       properties:

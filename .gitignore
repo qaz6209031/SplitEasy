@@ -7,3 +7,4 @@ DerivedData/
 build/
 *.xcodeproj/
 supabase/.temp/
+Config/DevSecrets.xcconfig

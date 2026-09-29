@@ -22,6 +22,11 @@ open SplitEasy.xcodeproj
 2. **Signing:** in Xcode → SplitEasy target → Signing & Capabilities, choose your team.
    - Sign in with Apple needs a paid Apple Developer account and a bundle ID you own (default `com.kaichinh.spliteasy`).
    - If you change the bundle ID, also change `[auth.external.apple] client_id` in `supabase/config.toml` and run `supabase config push`.
+3. **Developer sign-in (Debug only, optional):** the Alice/Bob/Carol buttons read a password base from the git-ignored `Config/DevSecrets.xcconfig`:
+   ```
+   DEV_ACCOUNT_PASSWORD = <random base>
+   ```
+   Each account's password is `<base>-alice`, `<base>-bob` or `<base>-carol`. Release builds never contain it. Without the file the buttons show a setup hint.
 
 ## ✨ Smart Split
 You describe the expense in your own words and can attach a receipt or screenshot. AI turns that into editable items, and you review everything before it's saved.
@@ -117,4 +122,7 @@ Add a new file in `supabase/migrations/` and run `supabase db push` (the DB pass
 - **Email sign-up is blocked** by the `before_user_created` auth hook (`public.hook_before_user_created`). Only the Debug-only dev accounts `dev-{alice,bob,carol}@spliteasy.dev` can use email and password; everyone else signs up with Apple or Google.
   - Don't set `[auth.email] enable_signup = false`: the CLI treats that as turning the whole email provider off, which also blocks the dev accounts from signing in.
 - **Mock AI:** keep `SMART_SPLIT_PROVIDER` unset so the mock is never used (it's unset now).
-- **Store listing:** see the drafts in `docs/app-store/` (privacy policy, privacy label, listing, review notes).
+- **Public pages** (GitHub Pages from `docs/`, also in `AppLinks`):
+  - Privacy Policy: https://qaz6209031.github.io/SplitEasy/privacy/
+  - Support: https://qaz6209031.github.io/SplitEasy/support/
+- **Store listing drafts:** `docs/app-store/` (privacy label, listing, review notes; not published).

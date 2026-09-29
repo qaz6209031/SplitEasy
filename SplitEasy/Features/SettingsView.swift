@@ -46,6 +46,14 @@ struct SettingsView: View {
                 } footer: {
                     Text("Smart Split sends your description and any attached image to an AI service to read the expense.")
                 }
+                Section("About") {
+                    Link(destination: AppLinks.privacyPolicy) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
+                    }
+                    Link(destination: AppLinks.support) {
+                        Label("Support", systemImage: "questionmark.circle")
+                    }
+                }
                 Section {
                     Button("Sign Out") {
                         Task {
