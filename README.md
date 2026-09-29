@@ -101,6 +101,7 @@ Add a new file in `supabase/migrations/` and run `supabase db push` (the DB pass
 - **Settle up:** "Mark as Paid" records a settlement, which moves balances toward zero.
 
 ## Before App Store release
-- Turn off email sign-up (`[auth.email] enable_signup = false`). It's only used by the Debug-only developer sign-in buttons.
-- Unset `SMART_SPLIT_PROVIDER` so the mock is never used.
-- Add an app icon, a privacy policy and the App Store privacy label.
+- **Email sign-up is blocked** by the `before_user_created` auth hook (`public.hook_before_user_created`). Only the Debug-only dev accounts `dev-{alice,bob,carol}@spliteasy.dev` can use email and password; everyone else signs up with Apple or Google.
+  - Don't set `[auth.email] enable_signup = false`: the CLI treats that as turning the whole email provider off, which also blocks the dev accounts from signing in.
+- **Mock AI:** keep `SMART_SPLIT_PROVIDER` unset so the mock is never used (it's unset now).
+- **Store listing:** see the drafts in `docs/app-store/` (privacy policy, privacy label, listing, review notes).
