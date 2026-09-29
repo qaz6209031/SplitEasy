@@ -1,0 +1,9 @@
+.env
+*.xcconfig.local
+Secrets.xcconfig
+.DS_Store
+xcuserdata/
+DerivedData/
+build/
+*.xcodeproj/
+supabase/.temp/
