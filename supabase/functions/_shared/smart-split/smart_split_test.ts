@@ -431,3 +431,24 @@ Deno.test("a rate-limited request is retried once", async () => {
   assertEquals(calls, 2);
   assertEquals(sanitizeModelOutput(raw, people).items.length, 1);
 });
+
+Deno.test("sanitizer drops placeholder prices when the model says it needs a price", () => {
+  const raw = modelOutput({
+    items: [{ ...modelOutput().items[0], unitPriceCents: 0, totalPriceCents: 0, needsPrice: true }],
+  });
+  const d = sanitizeModelOutput(raw, people);
+  assertEquals(d.items[0].totalPriceCents, null);
+  assertEquals(d.items[0].unitPriceCents, null);
+  assertEquals(d.items[0].needsPrice, true);
+});
+
+Deno.test("an unreadable response body becomes a retryable provider error", async () => {
+  const fakeFetch = (() => Promise.resolve(new Response("{not json", { status: 200 }))) as unknown as typeof fetch;
+  const error = await assertRejects(
+    () => new OpenRouterProvider("k", "m", fakeFetch).interpret({
+      text: "x", imageDataUrl: null, participants: people, currentUserId: "kai",
+    }),
+    ProviderError,
+  );
+  assertEquals(error.retryable, true);
+});

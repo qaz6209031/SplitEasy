@@ -52,7 +52,8 @@ export class OpenRouterProvider implements SmartSplitProvider {
     private readonly apiKey: string,
     readonly model: string,
     private readonly fetchImpl: typeof fetch = fetch,
-    private readonly timeoutMs = 60_000,
+    // Free models can take close to a minute; stay under the Edge Function wall-clock limit.
+    private readonly timeoutMs = 90_000,
     private readonly retryDelayMs = 2_000,
   ) {
     this.name = `openrouter:${model}`;
@@ -155,7 +156,13 @@ export class OpenRouterProvider implements SmartSplitProvider {
       throw new ProviderError(`AI service error ${response.status}: ${detail}`, retryable, unsupported, response.status === 429);
     }
 
-    const body = await response.json();
+    // The timeout can also fire while the body streams in; treat that like any other provider failure.
+    let body: { choices?: { message?: { content?: unknown } }[] };
+    try {
+      body = await response.json();
+    } catch (error) {
+      throw new ProviderError(`AI service response could not be read: ${(error as Error).message}`, true);
+    }
     const content = body?.choices?.[0]?.message?.content;
     if (typeof content !== "string" || content.length === 0) {
       throw new ProviderError("AI service returned an empty response", true);

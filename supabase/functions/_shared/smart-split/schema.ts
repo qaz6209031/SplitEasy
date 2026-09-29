@@ -192,9 +192,11 @@ export function sanitizeModelOutput(raw: unknown, participants: Participant[]): 
     usedIds.add(id);
 
     const quantity = Math.max(1, item.quantity);
-    const unitPriceCents = nonNegative(item.unitPriceCents);
-    let totalPriceCents = nonNegative(item.totalPriceCents);
-    if (item.totalPriceCents === null && unitPriceCents !== null) {
+    // A model that says it needs a price but still fills in 0 is guessing; never trust that number.
+    const priceUnknown = item.needsPrice;
+    const unitPriceCents = priceUnknown ? null : nonNegative(item.unitPriceCents);
+    let totalPriceCents = priceUnknown ? null : nonNegative(item.totalPriceCents);
+    if (!priceUnknown && item.totalPriceCents === null && unitPriceCents !== null) {
       totalPriceCents = unitPriceCents * quantity;
     }
 

@@ -5,6 +5,7 @@
 //
 // Requires: OPENROUTER_API_KEY set as a Supabase secret and SMART_SPLIT_PROVIDER unset (not "mock").
 // Uses the "UI Test" group (dev users Alice + Bob). Nothing is saved; only `interpret` is called.
+// Each case counts toward dev Alice's 30-calls-per-hour Smart Split quota.
 
 const root = new URL("../../../", import.meta.url);
 const secrets = await Deno.readTextFile(new URL("Config/Secrets.xcconfig", root));
@@ -161,10 +162,11 @@ for (const testCase of cases) {
         problems.push(`${item.name}: people ${people.map((p: string) => names.get(p))} ≠ ${want.people.map((p) => names.get(p))}`);
       }
     }
-    if (testCase.expect.taxCents !== undefined && draft.taxCents !== testCase.expect.taxCents) {
+    if (testCase.expect.taxCents !== undefined && (draft.taxCents ?? 0) !== (testCase.expect.taxCents ?? 0)) {
       problems.push(`tax ${draft.taxCents} ≠ ${testCase.expect.taxCents}`);
     }
-    if (testCase.expect.tipCents !== undefined && draft.tipCents !== testCase.expect.tipCents) {
+    // "No tip" may come back as null or 0; both mean the same thing.
+    if (testCase.expect.tipCents !== undefined && (draft.tipCents ?? 0) !== (testCase.expect.tipCents ?? 0)) {
       problems.push(`tip ${draft.tipCents} ≠ ${testCase.expect.tipCents}`);
     }
     if (testCase.expect.paidBy && draft.paidByParticipantId !== testCase.expect.paidBy) {
