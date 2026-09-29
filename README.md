@@ -80,6 +80,19 @@ How the sign-in works:
 - Google sends the user back to `spliteasy://auth-callback`, which is registered in `project.yml` and allowed in `additional_redirect_urls`.
 - The user's Google name fills in their profile.
 
+## Account deletion and Apple token revocation
+In-app **Settings → Delete Account** calls the `delete-account` Edge Function, which runs the `delete_account` RPC.
+- **Apple users:** the app first asks Apple to confirm, which gives a fresh authorization code. The function exchanges that code for a refresh token and revokes it (App Review 5.1.1(v)), so the app never stores Apple tokens.
+- **If revocation fails or isn't configured:** it's logged and the account is still deleted.
+- **One-time setup:**
+  1. In Apple Developer → Certificates, IDs & Profiles → **Keys**, create a key with **Sign in with Apple** enabled for the `com.kaichinh.spliteasy` App ID, and download the `.p8` file.
+  2. `APPLE_TEAM_ID` and `APPLE_CLIENT_ID` are already set. Set the other two yourself; don't paste them anywhere else:
+     ```sh
+     supabase secrets set APPLE_KEY_ID=XXXXXXXXXX --project-ref eloyohqnvsghwcthfvza
+     supabase secrets set APPLE_PRIVATE_KEY="$(cat ~/Downloads/AuthKey_XXXXXXXXXX.p8)" --project-ref eloyohqnvsghwcthfvza
+     ```
+- **Deploy changes:** `supabase functions deploy delete-account --project-ref eloyohqnvsghwcthfvza --use-api`
+
 ## Tests
 - **iOS:** Xcode → Product → Test, or
   ```sh
@@ -87,7 +100,7 @@ How the sign-in works:
   ```
 - **Smart Split server logic:**
   ```sh
-  deno test --allow-read supabase/functions/_shared/smart-split
+  deno test --allow-read supabase/functions/_shared
   ```
 - `supabase/functions/_shared/smart-split/fixtures/calculator.json` is run by **both** the Deno and the Swift tests, so the two calculators can't drift apart.
 

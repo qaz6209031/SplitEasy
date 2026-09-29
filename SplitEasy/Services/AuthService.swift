@@ -1,4 +1,5 @@
 import AuthenticationServices
+import UIKit
 import CryptoKit
 import Foundation
 import Observation
@@ -154,8 +155,35 @@ final class AuthService {
         try? await supabase.auth.signOut()
     }
 
+    /// The user tapped Cancel on the Apple confirmation; nothing was deleted.
+    struct DeletionCancelled: Error {}
+
+    var usesAppleSignIn: Bool {
+        supabase.auth.currentUser?.identities?.contains { $0.provider == "apple" } ?? false
+    }
+
+    /// Deletes the account through the `delete-account` Edge Function. Apple users confirm with Apple
+    /// first; the fresh authorization code lets the server revoke SplitEasy's Apple token
+    /// (App Review 5.1.1(v)) without the app ever storing Apple tokens.
     func deleteAccount() async throws {
-        try await supabase.rpc("delete_account").execute()
+        var authorizationCode: String?
+        if usesAppleSignIn {
+            do {
+                authorizationCode = try await AppleReauthorizer().authorizationCode()
+            } catch let error as ASAuthorizationError where error.code == .canceled {
+                throw DeletionCancelled()
+            } catch {
+                // Revocation is best effort; the account is still deleted.
+                authorizationCode = nil
+            }
+        }
+
+        struct Body: Encodable { let authorizationCode: String? }
+        struct Result: Decodable { let deleted: Bool }
+        let _: Result = try await supabase.functions.invoke(
+            "delete-account",
+            options: FunctionInvokeOptions(body: Body(authorizationCode: authorizationCode))
+        )
         try? await supabase.auth.signOut(scope: .local)
         profile = nil
         state = .signedOut
@@ -172,5 +200,53 @@ final class AuthService {
 
     private static func sha256(_ input: String) -> String {
         SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// Runs a Sign in with Apple request outside SwiftUI's button to get a fresh authorization code.
+final class AppleReauthorizer: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private var continuation: CheckedContinuation<String, Error>?
+    private var controller: ASAuthorizationController?
+
+    @MainActor
+    func authorizationCode() async throws -> String {
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = []
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        self.controller = controller
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let data = credential.authorizationCode,
+              let code = String(data: data, encoding: .utf8)
+        else {
+            finish(.failure(URLError(.userAuthenticationRequired)))
+            return
+        }
+        finish(.success(code))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        finish(.failure(error))
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+    }
+
+    private func finish(_ result: Result<String, Error>) {
+        continuation?.resume(with: result)
+        continuation = nil
+        controller = nil
     }
 }
