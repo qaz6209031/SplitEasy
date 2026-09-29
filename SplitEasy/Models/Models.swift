@@ -14,13 +14,22 @@ struct Profile: Codable, Identifiable, Hashable {
 
 /// Named `ExpenseGroup` to avoid clashing with SwiftUI's `Group`.
 struct ExpenseGroup: Codable, Identifiable, Hashable {
+    /// Settle up happens once, at the end: active (adding expenses) → settling (expenses locked,
+    /// everyone pays back) → settled (all balances zero). Reopening goes back to active.
+    enum Status: String, Codable {
+        case active, settling, settled
+    }
+
     let id: UUID
     var name: String
     var inviteCode: String
     var createdAt: Date
+    var status: Status
+
+    var isLocked: Bool { status != .active }
 
     enum CodingKeys: String, CodingKey {
-        case id, name
+        case id, name, status
         case inviteCode = "invite_code"
         case createdAt = "created_at"
     }

@@ -21,6 +21,21 @@ enum GroupRepository {
         try await supabase.rpc("create_group", params: ["p_name": name]).execute().value
     }
 
+    static func fetchGroup(id: UUID) async throws -> ExpenseGroup {
+        try await supabase.from("groups").select().eq("id", value: id).single().execute().value
+    }
+
+    /// Locks expenses and starts the final pay-back. Returns the new status ("settling", or "settled"
+    /// if everyone was already even).
+    static func startSettlement(groupId: UUID) async throws {
+        try await supabase.rpc("start_settlement", params: ["p_group_id": groupId]).execute()
+    }
+
+    /// Unlocks the group so expenses can be changed again. Recorded payments are kept.
+    static func reopenGroup(groupId: UUID) async throws {
+        try await supabase.rpc("reopen_group", params: ["p_group_id": groupId]).execute()
+    }
+
     static func joinGroup(code: String) async throws -> ExpenseGroup {
         try await supabase.rpc("join_group", params: ["p_code": code]).execute().value
     }

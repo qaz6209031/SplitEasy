@@ -117,9 +117,23 @@ private struct GroupRow: View {
 
     var body: some View {
         HStack {
-            Text(group.name).font(.headline)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(group.name).font(.headline)
+                if group.status != .active {
+                    HStack(spacing: 4) {
+                        Image(systemName: group.status == .settled ? "checkmark.seal.fill" : "arrow.left.arrow.right")
+                            .accessibilityHidden(true)
+                        Text(group.status == .settled ? "Settled" : "Settling up")
+                    }
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(group.status == .settled ? Color.green : Color.orange)
+                }
+            }
             Spacer()
-            BalanceLabel(cents: balance, style: .summary)
+            // "Settled" already says it all; don't repeat "settled up" beside it.
+            if !(group.status == .settled && balance == 0) {
+                BalanceLabel(cents: balance, style: .summary)
+            }
         }
         .padding(.vertical, 4)
     }

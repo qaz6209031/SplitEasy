@@ -4,11 +4,13 @@ import Observation
 @Observable
 @MainActor
 final class GroupDetailModel {
-    let group: ExpenseGroup
+    var group: ExpenseGroup
     var members: [Profile] = []
     var expenses: [Expense] = []
     var settlements: [Settlement] = []
     var hasLoaded = false
+    /// True while Settle Up / Reopen is saving, to show progress and prevent double taps.
+    var isUpdatingStatus = false
     var errorMessage: String?
 
     init(group: ExpenseGroup) {
@@ -30,10 +32,13 @@ final class GroupDetailModel {
 
     func load() async {
         do {
-            async let members = GroupRepository.fetchMembers(groupId: group.id)
-            async let expenses = GroupRepository.fetchExpenses(groupId: group.id)
-            async let settlements = GroupRepository.fetchSettlements(groupId: group.id)
-            (self.members, self.expenses, self.settlements) = try await (members, expenses, settlements)
+            let id = group.id
+            async let fetchedGroup = GroupRepository.fetchGroup(id: id)
+            async let members = GroupRepository.fetchMembers(groupId: id)
+            async let expenses = GroupRepository.fetchExpenses(groupId: id)
+            async let settlements = GroupRepository.fetchSettlements(groupId: id)
+            (self.group, self.members, self.expenses, self.settlements) =
+                try await (fetchedGroup, members, expenses, settlements)
         } catch is CancellationError {
             return
         } catch {
@@ -45,6 +50,28 @@ final class GroupDetailModel {
     func delete(_ expense: Expense) async {
         do {
             try await GroupRepository.deleteExpense(id: expense.id)
+        } catch {
+            errorMessage = userMessage(for: error)
+        }
+        await load()
+    }
+
+    func startSettlement() async {
+        isUpdatingStatus = true
+        defer { isUpdatingStatus = false }
+        do {
+            try await GroupRepository.startSettlement(groupId: group.id)
+        } catch {
+            errorMessage = userMessage(for: error)
+        }
+        await load()
+    }
+
+    func reopen() async {
+        isUpdatingStatus = true
+        defer { isUpdatingStatus = false }
+        do {
+            try await GroupRepository.reopenGroup(groupId: group.id)
         } catch {
             errorMessage = userMessage(for: error)
         }

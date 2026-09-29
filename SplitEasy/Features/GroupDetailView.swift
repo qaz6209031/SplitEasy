@@ -10,6 +10,10 @@ struct GroupDetailView: View {
     @State private var smartSplitEdit: SmartSplitReviewModel?
     /// Set when the user leaves Smart Split for manual entry; the form opens once the sheet is gone.
     @State private var openManualAfterSmartSplit = false
+    @State private var confirmSettleUp = false
+    @State private var confirmReopen = false
+    @State private var showLockedNotice = false
+    @State private var didPickInitialTab = false
 
     private enum Tab: String, CaseIterable {
         case expenses = "Expenses"
@@ -37,14 +41,16 @@ struct GroupDetailView: View {
                 .listRowInsets(EdgeInsets())
             }
 
-            if model.hasLoaded && model.members.count < 2 {
+            if model.group.isLocked {
+                StatusBanner(status: model.group.status, isBusy: model.isUpdatingStatus) { confirmReopen = true }
+            } else if model.hasLoaded && model.members.count < 2 {
                 InviteBanner(code: model.group.inviteCode, shareText: shareText)
             }
 
             switch tab {
             case .expenses: expensesSection
             case .balances:
-                BalancesSection(model: model, currentUserId: auth.userId)
+                BalancesSection(model: model, currentUserId: auth.userId) { confirmSettleUp = true }
             }
         }
         .navigationTitle(model.group.name)
@@ -56,34 +62,45 @@ struct GroupDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 10) {
-                Button {
-                    showSmartSplit = true
-                } label: {
-                    Label("Smart Split", systemImage: "sparkles")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                }
-                .buttonStyle(.borderedProminent)
+            // Adding expenses is only possible while the group is active (not settling up).
+            if !model.group.isLocked {
+                HStack(spacing: 10) {
+                    Button {
+                        showSmartSplit = true
+                    } label: {
+                        Label("Smart Split", systemImage: "sparkles")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.borderedProminent)
 
-                Button {
-                    editor = ExpenseEditor(expense: nil)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.headline)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 4)
+                    Button {
+                        editor = ExpenseEditor(expense: nil)
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.headline)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 4)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("Add expense manually")
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Add expense manually")
+                .disabled(model.members.isEmpty)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
-            .disabled(model.members.isEmpty)
-            .padding(.horizontal)
-            .padding(.bottom, 8)
         }
         .refreshable { await model.load() }
-        .task { await model.load() }
+        .task {
+            await model.load()
+            // Opening a group that's settling up goes straight to who pays whom (first load only,
+            // so later reloads never yank the user off the tab they chose).
+            if !didPickInitialTab {
+                didPickInitialTab = true
+                if model.group.isLocked { tab = .balances }
+            }
+        }
         .sheet(item: $editor) { editor in
             if let userId = auth.userId {
                 ExpenseFormView(
@@ -137,6 +154,29 @@ struct GroupDetailView: View {
         } message: { _ in
             Text("This updates everyone's balances.")
         }
+        .alert("Settle up now?", isPresented: $confirmSettleUp) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settle Up") {
+                tab = .balances
+                Task { await model.startSettlement() }
+            }
+        } message: {
+            Text("Expenses will be locked, and everyone pays each other back using the list in Balances. You can reopen the group if something was missed.")
+        }
+        .alert("Reopen this group?", isPresented: $confirmReopen) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reopen") { Task { await model.reopen() } }
+        } message: {
+            Text("Everyone can add and edit expenses again. Payments already recorded are kept.")
+        }
+        .alert("Expenses are locked", isPresented: $showLockedNotice) {
+            Button("OK", role: .cancel) {}
+            Button("Reopen Group") { confirmReopen = true }
+        } message: {
+            Text(model.group.status == .settled
+                ? "This group is settled. Reopen it to change expenses."
+                : "This group is settling up. Reopen it to change expenses.")
+        }
         .alert("Something went wrong", isPresented: $model.errorMessage.isPresent) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -176,18 +216,29 @@ struct GroupDetailView: View {
         } else {
             Section {
                 ForEach(model.expenses) { expense in
-                    Button {
-                        open(expense)
-                    } label: {
-                        ExpenseRow(
-                            expense: expense,
-                            payerName: model.name(for: expense.paidBy, currentUserId: auth.userId)
-                        )
-                    }
-                    .tint(.primary)
-                    .swipeActions {
-                        Button("Delete", systemImage: "trash", role: .destructive) {
-                            expenseToDelete = expense
+                    let row = ExpenseRow(
+                        expense: expense,
+                        payerName: model.name(for: expense.paidBy, currentUserId: auth.userId)
+                    )
+                    if model.group.isLocked {
+                        // A tap gesture (not a Button) so a swipe on a locked row doesn't register as a tap.
+                        row
+                            .contentShape(Rectangle())
+                            .onTapGesture { showLockedNotice = true }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityHint("Expenses are locked while settling up")
+                    } else {
+                        Button {
+                            open(expense)
+                        } label: {
+                            row
+                        }
+                        .tint(.primary)
+                        .swipeActions {
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                expenseToDelete = expense
+                            }
                         }
                     }
                 }
@@ -218,6 +269,48 @@ private struct ExpenseRow: View {
             }
             Spacer()
             Text(Money.format(cents: expense.amountCents)).font(.body.monospacedDigit())
+        }
+    }
+}
+
+/// Shown while the group is settling up or settled, with a way to reopen it.
+private struct StatusBanner: View {
+    let status: ExpenseGroup.Status
+    let isBusy: Bool
+    let onReopen: () -> Void
+
+    private var tint: Color { status == .settled ? .green : .orange }
+
+    var body: some View {
+        Section {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: status == .settled ? "checkmark.seal.fill" : "arrow.left.arrow.right.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(status == .settled ? "All settled up" : "Settling up")
+                        .font(.headline)
+                    Text(status == .settled
+                        ? "Everyone has been paid back."
+                        : "Expenses are locked. Pay each other back using the list in Balances and mark each payment as paid.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button(action: onReopen) {
+                        HStack(spacing: 6) {
+                            if isBusy { ProgressView() }
+                            Text("Reopen group")
+                        }
+                    }
+                    .font(.subheadline)
+                    .buttonStyle(.borderless)
+                    .disabled(isBusy)
+                    .padding(.top, 2)
+                }
+            }
+            .padding(.vertical, 4)
+            .listRowBackground(tint.opacity(0.14))
         }
     }
 }
