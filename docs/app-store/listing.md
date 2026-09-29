@@ -4,7 +4,7 @@
 - **Subtitle** (≤30): `Split bills in plain words` (26)
 - **Category:** Finance (secondary: Travel)
 - **Age rating:** 4+ (no objectionable content; no unrestricted web access)
-- **Keywords** (≤100): `split,bill,expense,splitwise,roommate,trip,group,receipt,owe,settle,iou,share,cost,dinner` (87)
+- **Keywords** (≤100): `split,bill,expense,roommate,trip,group,receipt,owe,settle,iou,share,cost,dinner,friends,tab` (91). Don't use competitor names like Splitwise: that risks rejection under 2.3.7
 
 ## Promotional text (≤170)
 Describe what you bought, attach a receipt if you have one, and Smart Split works out who owes what, down to the cent.
