@@ -57,6 +57,10 @@ struct SmartSplitInputView: View {
     @State private var isWorking = false
     @State private var failure: SmartSplitService.Failure?
     @State private var work: Task<Void, Never>?
+    @AppStorage(SmartSplitConsent.storageKey) private var aiConsent = false
+    @State private var showConsent = false
+    /// Set after "Not Now" so the screen explains why nothing happened and points to manual entry.
+    @State private var declinedConsent = false
     @FocusState private var editorFocused: Bool
 
     private var canSubmit: Bool {
@@ -86,6 +90,10 @@ struct SmartSplitInputView: View {
                     FailureBanner(failure: failure, hasImage: image != nil, onRetry: submit)
                 }
 
+                if declinedConsent && !aiConsent {
+                    ConsentDeclinedBanner(onReview: { showConsent = true }, onManualEntry: manualEntry)
+                }
+
                 Button(action: manualEntry) {
                     Text("Enter manually instead")
                         .font(.subheadline)
@@ -107,6 +115,18 @@ struct SmartSplitInputView: View {
                     dismiss()
                 }
             }
+        }
+        .sheet(isPresented: $showConsent) {
+            SmartSplitConsentSheet(
+                alreadyGranted: false,
+                onAllow: {
+                    aiConsent = true
+                    declinedConsent = false
+                    // Carry on with the request the user just asked for.
+                    DispatchQueue.main.async { submit() }
+                },
+                onDecline: { declinedConsent = true }
+            )
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in
@@ -195,6 +215,12 @@ struct SmartSplitInputView: View {
 
     private func submit() {
         guard canSubmit else { return }
+        // Nothing leaves the device until the user has agreed to AI processing.
+        guard aiConsent else {
+            editorFocused = false
+            showConsent = true
+            return
+        }
         editorFocused = false
         failure = nil
         isWorking = true
@@ -242,6 +268,30 @@ private struct AttachmentThumbnail: View {
             .buttonStyle(.borderless)
             .accessibilityLabel("Remove image")
         }
+    }
+}
+
+private struct ConsentDeclinedBanner: View {
+    let onReview: () -> Void
+    let onManualEntry: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Smart Split needs your OK to use AI.", systemImage: "hand.raised.fill")
+                .font(.subheadline)
+            Text("Your description is still here. You can add the expense manually instead.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack {
+                Button("Review", action: onReview)
+                    .buttonStyle(.bordered)
+                Button("Enter Manually", action: onManualEntry)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.tertiarySystemFill)))
     }
 }
 
