@@ -10,7 +10,8 @@ export function UpdateBanner() {
   const insets = useSafeAreaInsets();
   if (!updatesSupported || !isUpdatePending) return null;
   return (
-    <View style={[styles.banner, { top: insets.top + spacing.s }]} accessibilityRole="alert">
+    // Bottom placement, above the screens' bottom "Add Expense" bar, so it never covers navigation buttons.
+    <View style={[styles.banner, { bottom: insets.bottom + 76 }]} accessibilityRole="alert">
       <Text style={styles.text}>A new version of SplitEasy is ready.</Text>
       <Pressable
         onPress={() => Updates.reloadAsync()}

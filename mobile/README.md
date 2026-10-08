@@ -9,9 +9,10 @@ The SplitEasy app rebuilt with Expo SDK 57, Expo Router and TypeScript. It uses 
 ```sh
 cd mobile
 npm install
-npx expo run:ios                 # builds the dev client into the simulator and starts Metro
+npx expo run:ios                 # builds a Debug app into the simulator and starts Metro
 ```
-- **`.env`** (committed) holds the Supabase URL and publishable key. Both are public by design; Row Level Security protects the data.
+- **`.env`** (committed) holds the Supabase URL and publishable key for local builds. Both are public by design; Row Level Security protects the data.
+- **EAS environment variables** hold the same two values for `eas update` and `eas build` (environments `production`, `preview`, `development`). `eas update --environment …` reads **only** these, not `.env`; an update published without them crashes on launch. Check with `npx eas-cli@latest env:list --environment production`.
 - **`.env.development.local`** (git-ignored) holds `EXPO_PUBLIC_DEV_ACCOUNT_PASSWORD` for the Debug-only Alice/Bob/Carol buttons. Production builds and `eas update` never load this file, and the `__DEV__` branch that reads it is stripped from release bundles.
 
 ## Checks
@@ -37,6 +38,16 @@ npx eas-cli@latest update:configure   # adds updates.url + extra.eas.projectId t
 ```sh
 npx eas-cli@latest update --channel production --message "Fix balance rounding" --environment production
 ```
+- **Safety net:** if an update crashes on launch, expo-updates rolls the app back to the previous working bundle on the next start. Publishing a fixed update repairs it.
+
+### Test an update locally (release build on the simulator)
+A local release build has no EAS Build channel, so pass one in. Use the **same** variable when publishing: it is part of the fingerprint, so the runtime versions must match.
+```sh
+LOCAL_UPDATE_CHANNEL=production npx expo prebuild --platform ios
+LOCAL_UPDATE_CHANNEL=production npx expo run:ios --configuration Release
+LOCAL_UPDATE_CHANNEL=production npx eas-cli@latest update --channel production --message "…" --environment production --platform ios
+```
+Then force-quit and reopen the app: the first launch downloads the update and shows the banner, the next launch runs it.
 - **What can ship:** anything in `src/`, images and other assets.
 - **What can't:** new native modules, permissions, `app.json` native settings or an SDK upgrade. Those need a new `eas build` and an App Store release.
 - **Apple's rule (3.3.1(B)):** updates must not change the app's primary purpose.
@@ -47,6 +58,10 @@ npx eas-cli@latest build --profile development-simulator --platform ios   # dev 
 npx eas-cli@latest build --profile production --platform ios             # App Store build (channel: production)
 npx eas-cli@latest submit --platform ios
 ```
+
+## iOS 27 notes
+- **UIScene life cycle:** the iOS 27 SDK refuses to launch apps without it. `plugins/withSceneLifecycle.js` wires Expo's `ExpoAppSceneDelegate` into the generated project at prebuild. Remove it once Expo's template adopts scenes.
+- **No `expo-dev-client`:** its launcher doesn't support the scene life cycle yet (black screen), so Debug builds load JS straight from Metro instead. Add it back once it supports scenes.
 
 ## Structure
 ```
