@@ -1,3 +1,0 @@
-// Debug configuration: shared secrets plus the Debug-only dev account password (optional file).
-#include "Secrets.xcconfig"
-#include? "DevSecrets.xcconfig"
