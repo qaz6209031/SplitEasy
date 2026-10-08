@@ -54,7 +54,7 @@ Then force-quit and reopen the app: the first launch downloads the update and sh
 
 ### Builds
 ```sh
-npx eas-cli@latest build --profile development-simulator --platform ios   # dev client for the simulator
+npx eas-cli@latest build --profile development-simulator --platform ios   # Debug build for the simulator
 npx eas-cli@latest build --profile production --platform ios             # App Store build (channel: production)
 npx eas-cli@latest submit --platform ios
 ```
