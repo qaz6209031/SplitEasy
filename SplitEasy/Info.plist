@@ -35,8 +35,6 @@
 	<string>$(DEV_ACCOUNT_PASSWORD)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>NSCameraUsageDescription</key>
-	<string>Take a photo of a receipt so Smart Split can read the items.</string>
 	<key>SupabaseHost</key>
 	<string>$(SUPABASE_HOST)</string>
 	<key>SupabasePublishableKey</key>

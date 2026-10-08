@@ -6,10 +6,6 @@ struct GroupDetailView: View {
     @State private var tab = Tab.expenses
     @State private var editor: ExpenseEditor?
     @State private var expenseToDelete: Expense?
-    @State private var showSmartSplit = false
-    @State private var smartSplitEdit: SmartSplitReviewModel?
-    /// Set when the user leaves Smart Split for manual entry; the form opens once the sheet is gone.
-    @State private var openManualAfterSmartSplit = false
     @State private var confirmSettleUp = false
     @State private var confirmReopen = false
     @State private var showLockedNotice = false
@@ -64,28 +60,15 @@ struct GroupDetailView: View {
         .safeAreaInset(edge: .bottom) {
             // Adding expenses is only possible while the group is active (not settling up).
             if !model.group.isLocked {
-                HStack(spacing: 10) {
-                    Button {
-                        showSmartSplit = true
-                    } label: {
-                        Label("Smart Split", systemImage: "sparkles")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button {
-                        editor = ExpenseEditor(expense: nil)
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.headline)
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 4)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Add expense manually")
+                Button {
+                    editor = ExpenseEditor(expense: nil)
+                } label: {
+                    Label("Add Expense", systemImage: "plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
                 }
+                .buttonStyle(.borderedProminent)
                 .disabled(model.members.isEmpty)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -110,33 +93,6 @@ struct GroupDetailView: View {
                     expense: editor.expense
                 ) {
                     await model.load()
-                }
-            }
-        }
-        .sheet(isPresented: $showSmartSplit, onDismiss: {
-            if openManualAfterSmartSplit {
-                openManualAfterSmartSplit = false
-                editor = ExpenseEditor(expense: nil)
-            }
-        }) {
-            if let userId = auth.userId {
-                SmartSplitFlowView(
-                    groupId: model.group.id,
-                    members: model.members,
-                    currentUserId: userId,
-                    onSaved: {
-                        await model.load()
-                        showSmartSplit = false
-                    },
-                    onManualEntry: { openManualAfterSmartSplit = true }
-                )
-            }
-        }
-        .sheet(item: $smartSplitEdit) { reviewModel in
-            NavigationStack {
-                SmartSplitReviewView(model: reviewModel) {
-                    await model.load()
-                    smartSplitEdit = nil
                 }
             }
         }
@@ -184,22 +140,6 @@ struct GroupDetailView: View {
         }
     }
 
-    /// Smart Split expenses reopen in the review screen so their item breakdown isn't flattened
-    /// into an equal split by the manual form.
-    private func open(_ expense: Expense) {
-        if let details = expense.splitDetails, let userId = auth.userId {
-            smartSplitEdit = SmartSplitReviewModel(
-                groupId: model.group.id,
-                members: model.members,
-                currentUserId: userId,
-                draft: details,
-                expense: expense
-            )
-        } else {
-            editor = ExpenseEditor(expense: expense)
-        }
-    }
-
     private var shareText: String {
         "Join my group \"\(model.group.name)\" on SplitEasy with invite code \(model.group.inviteCode)"
     }
@@ -210,7 +150,7 @@ struct GroupDetailView: View {
             ContentUnavailableView(
                 "No expenses yet",
                 systemImage: "receipt",
-                description: Text("Tap Smart Split and describe what you bought, or add it manually with +.")
+                description: Text("Tap Add Expense to record who paid for what.")
             )
             .listRowBackground(Color.clear)
         } else {
@@ -230,7 +170,7 @@ struct GroupDetailView: View {
                             .accessibilityHint("Expenses are locked while settling up")
                     } else {
                         Button {
-                            open(expense)
+                            editor = ExpenseEditor(expense: expense)
                         } label: {
                             row
                         }
@@ -254,15 +194,7 @@ private struct ExpenseRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(expense.description).font(.body)
-                    if expense.splitDetails != nil {
-                        Image(systemName: "sparkles")
-                            .font(.caption)
-                            .foregroundStyle(.purple)
-                            .accessibilityLabel("Smart Split")
-                    }
-                }
+                Text(expense.description).font(.body)
                 Text("\(payerName) paid · \(expense.createdAt.formatted(date: .abbreviated, time: .omitted))")
                     .font(.caption)
                     .foregroundStyle(.secondary)

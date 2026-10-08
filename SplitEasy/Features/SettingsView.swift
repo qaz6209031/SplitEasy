@@ -7,8 +7,6 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var errorMessage: String?
     @State private var isDeleting = false
-    @State private var showAIConsent = false
-    @AppStorage(SmartSplitConsent.storageKey) private var aiConsent = false
 
     private var nameChanged: Bool {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
@@ -28,23 +26,6 @@ struct SettingsView: View {
                             }
                         }
                     }
-                }
-                Section {
-                    Button {
-                        showAIConsent = true
-                    } label: {
-                        HStack {
-                            Label("AI data sharing", systemImage: "sparkles")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Text(aiConsent ? "Allowed" : "Off")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Smart Split")
-                } footer: {
-                    Text("Smart Split sends your description and any attached image to an AI service to read the expense.")
                 }
                 Section("About") {
                     Link(destination: AppLinks.privacyPolicy) {
@@ -100,13 +81,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This can't be undone.")
-            }
-            .sheet(isPresented: $showAIConsent) {
-                SmartSplitConsentSheet(
-                    alreadyGranted: aiConsent,
-                    onAllow: { aiConsent = true },
-                    onDecline: { aiConsent = false }
-                )
             }
             .interactiveDismissDisabled(isDeleting)
             .alert("Something went wrong", isPresented: $errorMessage.isPresent) {

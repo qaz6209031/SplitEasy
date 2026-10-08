@@ -53,8 +53,6 @@ struct Expense: Codable, Identifiable, Hashable {
     var paidBy: UUID
     var createdAt: Date
     var splits: [ExpenseSplit]
-    /// The reviewed Smart Split breakdown; nil for manually entered expenses.
-    var splitDetails: SmartSplitDraft? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, description, splits
@@ -62,7 +60,6 @@ struct Expense: Codable, Identifiable, Hashable {
         case amountCents = "amount_cents"
         case paidBy = "paid_by"
         case createdAt = "created_at"
-        case splitDetails = "split_details"
     }
 }
 

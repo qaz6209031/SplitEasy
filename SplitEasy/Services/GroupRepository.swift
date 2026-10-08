@@ -5,7 +5,7 @@ import Supabase
 /// defined in `supabase/migrations`.
 enum GroupRepository {
     private static let expenseColumns =
-        "id, group_id, description, amount_cents, paid_by, created_at, split_details, splits:expense_splits(user_id, amount_cents)"
+        "id, group_id, description, amount_cents, paid_by, created_at, splits:expense_splits(user_id, amount_cents)"
 
     // MARK: Groups
 

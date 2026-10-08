@@ -13,10 +13,10 @@ We usually reply within 2 business days.
 **How do friends join my group?**
 Open the group and tap **Invite** to share its 6-character code. Friends tap **+ → Join with Code** and enter it.
 
-**How does Smart Split work?**
-Describe what everyone bought, for example "Kai burger 18, John pasta 20, fries 6 shared", and optionally
-attach a receipt. You review and edit the result before anything is saved. Smart Split sends your
-description and image to an AI service only after you agree; see the [Privacy Policy](../privacy/).
+**How does settling up work?**
+Add expenses as you go. When the trip is over, open **Balances** and tap **Settle Up**: expenses are locked
+and SplitEasy shows who pays whom. Mark each payment as paid; once everyone is even the group shows
+**Settled**. Missed something? Tap **Reopen group**.
 
 **Why are there fewer payments than expenses?**
 SplitEasy simplifies debts so the group settles up with the fewest possible payments.

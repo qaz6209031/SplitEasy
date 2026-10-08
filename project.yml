@@ -31,7 +31,6 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: Take a photo of a receipt so Smart Split can read the items.
         CFBundleURLTypes:
           - CFBundleURLName: com.kaichinh.spliteasy.auth
             CFBundleURLSchemes: [spliteasy]
@@ -55,11 +54,7 @@ targets:
   SplitEasyTests:
     type: bundle.unit-test
     platform: iOS
-    sources:
-      - SplitEasyTests
-      # Same calculator fixtures the Deno tests use, so Swift and TypeScript can't drift apart.
-      - path: supabase/functions/_shared/smart-split/fixtures
-        buildPhase: resources
+    sources: [SplitEasyTests]
     dependencies:
       - target: SplitEasy
     settings:
