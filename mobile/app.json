@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "SplitEasy",
+    "slug": "spliteasy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.kaichinh.spliteasy",
+      "supportsTablet": false,
+      "usesAppleSignIn": true,
+      "appleTeamId": "F8GUFSACTM",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4F46E5",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kaichinh.spliteasy"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-apple-authentication",
+      "expo-sqlite",
+      "expo-web-browser",
+      "expo-font",
+      "expo-status-bar",
+      "./plugins/withSceneLifecycle"
+    ],
+    "scheme": "spliteasy",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/77d93734-bdcb-4f3a-8325-82ffab279b1a"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "77d93734-bdcb-4f3a-8325-82ffab279b1a"
+      }
+    },
+    "owner": "qaz6209031"
+  }
+}
