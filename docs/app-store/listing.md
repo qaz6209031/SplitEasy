@@ -25,3 +25,12 @@ When you're done, tap Settle Up. Expenses lock, and SplitEasy simplifies everyon
 Sign in with Apple or Google. No ads, no tracking. Delete your account any time from Settings.
 
 Amounts are in US dollars.
+
+## Screenshots
+`screenshots/` holds 6.9" iPhone shots (1320×2868, iPhone 18 Pro Max simulator), which App Store Connect scales down for smaller iPhones. Upload them in order:
+1. `01-groups.png`: groups with balances and a settled badge
+2. `02-expenses.png`: a trip's expenses
+3. `03-add-expense.png`: adding an expense, split equally
+4. `04-balances.png`: who owes whom
+5. `05-settle-up.png`: settling up with the fewest payments
+6. `06-settled.png`: all settled up

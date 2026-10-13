@@ -140,7 +140,7 @@ export default function ExpenseFormScreen() {
                 autoFocus={!isEditing}
                 onFocus={() => setAmountFocused(true)}
                 onBlur={() => setAmountFocused(false)}
-                style={[styles.amountInput, amountInvalid && { color: colors.red }]}
+                style={[styles.amountInput, { width: amountWidth(amountText) }, amountInvalid && { color: colors.red }]}
                 accessibilityLabel="Amount"
               />
             </View>
@@ -210,6 +210,15 @@ export default function ExpenseFormScreen() {
   );
 }
 
+/**
+ * The input doesn't grow with its text on iOS, so size it from the (monospaced) text,
+ * otherwise "86.40" is cut off as "86.4".
+ */
+function amountWidth(text: string) {
+  const glyph = type.amountXL.fontSize * 0.6 + type.amountXL.letterSpacing;
+  return Math.ceil(Math.max(text.length, 4) * glyph) + 12;
+}
+
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space.m, paddingTop: 4, paddingBottom: 40, gap: 20 },
@@ -226,7 +235,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
   dollar: { fontFamily: fonts.mono, fontSize: 32, color: colors.textMuted },
-  amountInput: { ...type.amountXL, height: 58, color: colors.text, minWidth: 140, padding: 0 },
+  amountInput: { ...type.amountXL, height: 58, color: colors.text, maxWidth: 300, padding: 0 },
   amountError: { color: colors.red, textAlign: 'center', marginTop: 6, marginHorizontal: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   chip: {

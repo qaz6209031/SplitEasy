@@ -11,7 +11,22 @@ if (!url || !key) {
 export const supabaseUrl = url;
 export const supabaseKey = key;
 
+/**
+ * A token minted moments ago can be rejected as "JWT issued at future" when the auth and database
+ * servers' clocks differ by a second. That happens right after sign-in, so wait and retry briefly.
+ */
+async function fetchWithClockSkewRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(input, init);
+    if (response.status !== 401 || attempt >= 2) return response;
+    const body = await response.clone().text();
+    if (!body.includes('JWT issued at future')) return response;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
 export const supabase = createClient(url, key, {
+  global: { fetch: fetchWithClockSkewRetry },
   auth: {
     // localStorage is backed by expo-sqlite so sessions survive app restarts.
     storage: localStorage,
