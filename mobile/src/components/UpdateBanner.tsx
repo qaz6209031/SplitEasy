@@ -1,47 +1,46 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Updates, updatesSupported } from '@/lib/updates';
-import { colors, spacing, type } from './theme';
+import { colors, floatShadow, fonts } from './theme';
+import { Button, T2, Tile } from './ui';
 
-/** Appears once an over-the-air update has been downloaded; restarting applies it immediately. */
+/** "Update ready" toast: appears once an over-the-air update has been downloaded; Restart applies it. */
 export function UpdateBanner() {
   const { isUpdatePending } = Updates.useUpdates();
   const insets = useSafeAreaInsets();
   if (!updatesSupported || !isUpdatePending) return null;
   return (
-    // Bottom placement, above the screens' bottom "Add Expense" bar, so it never covers navigation buttons.
-    <View style={[styles.banner, { bottom: insets.bottom + 76 }]} accessibilityRole="alert">
-      <Text style={styles.text}>A new version of SplitEasy is ready.</Text>
-      <Pressable
-        onPress={() => Updates.reloadAsync()}
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
-      >
-        <Text style={styles.buttonText}>Restart</Text>
-      </Pressable>
+    // Floats above the screens' bottom "Add Expense" bar so it never covers navigation buttons.
+    <View style={[styles.toast, { bottom: insets.bottom + 84 }]} accessibilityRole="alert">
+      <Tile icon="refresh" color={colors.green} background={colors.greenTint} size={36} iconSize={18} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>Update ready</Text>
+        <T2>A new version of SplitEasy is ready.</T2>
+      </View>
+      <Button title="Restart" variant="green" size="sm" onPress={() => Updates.reloadAsync()} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
+  toast: {
     position: 'absolute',
-    left: spacing.l,
-    right: spacing.l,
+    left: 12,
+    right: 12,
     zIndex: 100,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.m,
-    padding: spacing.m,
-    borderRadius: 14,
-    backgroundColor: colors.accent,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    gap: 12,
+    paddingVertical: 10,
+    paddingRight: 10,
+    paddingLeft: 12,
+    borderRadius: 16,
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...floatShadow,
+    shadowOpacity: 0.6,
   },
-  text: { ...type.subheadline, color: colors.white, flex: 1, fontWeight: '600' },
-  button: { backgroundColor: colors.white, borderRadius: 8, paddingHorizontal: spacing.m, paddingVertical: 6 },
-  buttonText: { ...type.subheadline, color: colors.accent, fontWeight: '700' },
+  title: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
 });

@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
 
+import { useDialog } from '@/components/Dialog';
 import * as repo from '@/data/repository';
 import type { Expense, Group, Profile, Settlement } from '@/data/types';
 import { netBalances } from '@/domain/balances';
@@ -10,6 +10,7 @@ import { userMessage } from '@/lib/supabase';
 
 /** Loads one group (members, expenses, payments) and exposes the settle-up actions. */
 export function useGroupDetail(groupId: string) {
+  const dialog = useDialog();
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Profile[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -31,11 +32,11 @@ export function useGroupDetail(groupId: string) {
       setExpenses(e);
       setSettlements(s);
     } catch (error) {
-      Alert.alert('Something went wrong', userMessage(error));
+      await dialog.alert('Something went wrong', userMessage(error));
     } finally {
       setLoaded(true);
     }
-  }, [groupId]);
+  }, [groupId, dialog]);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,7 +52,7 @@ export function useGroupDetail(groupId: string) {
     try {
       await action();
     } catch (error) {
-      Alert.alert('Something went wrong', userMessage(error));
+      await dialog.alert('Something went wrong', userMessage(error));
     } finally {
       if (trackStatus) setUpdatingStatus(false);
       await load();

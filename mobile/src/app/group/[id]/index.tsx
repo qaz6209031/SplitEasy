@@ -1,25 +1,53 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import SegmentedControl from '@react-native-segmented-control/segmented-control';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { colors, spacing, type } from '@/components/theme';
-import { BalanceLabel, Button, Label, Row, Secondary, Section, styles as uiStyles } from '@/components/ui';
+import { useDialog } from '@/components/Dialog';
+import { Icon } from '@/components/Icon';
+import { colors, fonts, radius, space, type } from '@/components/theme';
+import {
+  Amount,
+  Avatar,
+  BalanceLabel,
+  Button,
+  Card,
+  Footnote,
+  LinkButton,
+  NavBar,
+  Row,
+  SectionHeader,
+  SegmentedControl,
+  T1,
+  T2,
+  Tile,
+  styles as ui,
+} from '@/components/ui';
 import { isLocked, type Expense, type GroupStatus } from '@/data/types';
 import { paymentKey, type Payment } from '@/domain/debts';
 import { formatCents } from '@/domain/money';
 import { useGroupDetail } from '@/features/useGroupDetail';
 
 type Tab = 'expenses' | 'balances';
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { dateStyle: 'medium' });
 
 export default function GroupScreen() {
   const { id, name: initialName } = useLocalSearchParams<{ id: string; name?: string }>();
   const { userId } = useAuth();
+  const dialog = useDialog();
   const detail = useGroupDetail(id);
   const { group, members, expenses, settlements, balances, payments, loaded } = detail;
   // null until the user picks a tab: a group that's settling up opens on who pays whom.
@@ -35,87 +63,84 @@ export default function GroupScreen() {
   /** Mid-sentence form: "Alice paid you". */
   const objectName = (personId: string) => (personId === userId ? 'you' : name(personId));
 
-  const shareText = group
-    ? `Join my group "${group.name}" on SplitEasy with invite code ${group.invite_code}`
-    : '';
+  const shareText = group ? `Join my group "${group.name}" on SplitEasy with invite code ${group.invite_code}` : '';
+  const share = () => Share.share({ message: shareText });
 
-  function confirmSettleUp() {
-    Alert.alert(
-      'Settle up now?',
-      'Expenses will be locked, and everyone pays each other back using the list in Balances. You can reopen the group if something was missed.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Settle Up',
-          onPress: () => {
-            setTab('balances');
-            // Bring the new "Settling up" banner into view.
-            scrollRef.current?.scrollTo({ y: 0, animated: true });
-            detail.startSettlement();
-          },
-        },
-      ],
-    );
+  async function confirmSettleUp() {
+    const ok = await dialog.confirm({
+      title: 'Settle up now?',
+      message: 'Expenses will be locked and everyone pays each other back. You can reopen the group if something was missed.',
+      confirmTitle: 'Settle Up',
+      tone: 'amber',
+    });
+    if (!ok) return;
+    setTab('balances');
+    // Bring the new "Settling up" banner into view.
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    detail.startSettlement();
   }
 
-  function confirmReopen() {
-    Alert.alert('Reopen this group?', 'Everyone can add and edit expenses again. Payments already recorded are kept.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reopen', onPress: () => detail.reopen() },
-    ]);
+  async function confirmReopen() {
+    const ok = await dialog.confirm({
+      title: 'Reopen this group?',
+      message: 'Everyone can add and edit expenses again. Payments already recorded are kept.',
+      confirmTitle: 'Reopen',
+    });
+    if (ok) detail.reopen();
   }
 
-  function showLockedNotice() {
-    Alert.alert(
-      'Expenses are locked',
-      group?.status === 'settled'
-        ? 'This group is settled. Reopen it to change expenses.'
-        : 'This group is settling up. Reopen it to change expenses.',
-      [
-        { text: 'OK', style: 'cancel' },
-        { text: 'Reopen Group', onPress: confirmReopen },
-      ],
-    );
+  async function showLockedNotice() {
+    const reopen = await dialog.confirm({
+      title: 'Expenses are locked',
+      message: group?.status === 'settled' ? 'This group is settled. Reopen it to change expenses.' : 'Reopen it to change expenses.',
+      cancelTitle: 'OK',
+      confirmTitle: 'Reopen Group',
+    });
+    if (reopen) confirmReopen();
   }
 
-  function confirmDelete(expense: Expense) {
-    Alert.alert(`Delete "${expense.description}"?`, "This updates everyone's balances.", [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => detail.deleteExpense(expense.id) },
-    ]);
+  async function confirmDelete(expense: Expense) {
+    const ok = await dialog.confirm({
+      title: `Delete "${expense.description}"?`,
+      message: "This updates everyone's balances.",
+      confirmTitle: 'Delete',
+      tone: 'red',
+    });
+    if (ok) detail.deleteExpense(expense.id);
   }
 
-  function confirmPaid(payment: Payment) {
-    Alert.alert(
-      'Record this payment?',
-      `${name(payment.from)} paid ${objectName(payment.to)} ${formatCents(payment.amountCents)}.\nOnly confirm once the money has actually been sent.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Mark as Paid', onPress: () => detail.markPaid(payment) },
-      ],
-    );
+  async function confirmPaid(payment: Payment) {
+    const ok = await dialog.confirm({
+      title: 'Record this payment?',
+      highlight: formatCents(payment.amountCents),
+      message: `${name(payment.from)} paid ${objectName(payment.to)} ${formatCents(payment.amountCents)}. Only confirm once the money has actually been sent.`,
+      confirmTitle: 'Mark as Paid',
+    });
+    if (ok) detail.markPaid(payment);
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: group?.name ?? initialName ?? '',
-          headerRight: () => (
-            <Pressable onPress={() => Share.share({ message: shareText })} accessibilityLabel="Invite" hitSlop={8}>
-              <Ionicons name="person-add-outline" size={22} color={colors.accent} />
-            </Pressable>
-          ),
-        }}
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <NavBar
+        left={<LinkButton title="Groups" icon="chev-l" iconSize={22} onPress={() => router.back()} />}
+        title={group?.name ?? initialName ?? ''}
+        right={<LinkButton title="Invite" icon="share" onPress={share} />}
       />
+      <View style={{ paddingHorizontal: space.m, paddingTop: 4, paddingBottom: space.m }}>
+        <SegmentedControl
+          values={['Expenses', 'Balances']}
+          index={tab === 'expenses' ? 0 : 1}
+          onChange={(i) => setTab(i === 0 ? 'expenses' : 'balances')}
+        />
+      </View>
+
       <ScrollView
         ref={scrollRef}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingBottom: locked ? insets.bottom + spacing.xl : 110 + insets.bottom }}
+        contentContainerStyle={[styles.body, { paddingBottom: locked ? insets.bottom + space.l : 100 + insets.bottom }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            tintColor={colors.secondaryText}
+            tintColor={colors.text}
             onRefresh={async () => {
               setRefreshing(true);
               await detail.reload();
@@ -124,29 +149,21 @@ export default function GroupScreen() {
           />
         }
       >
-        <SegmentedControl
-          values={['Expenses', 'Balances']}
-          selectedIndex={tab === 'expenses' ? 0 : 1}
-          onChange={(e) => setTab(e.nativeEvent.selectedSegmentIndex === 0 ? 'expenses' : 'balances')}
-          style={styles.segmented}
-          appearance="dark"
-        />
-
         {group && locked ? (
           <StatusBanner status={group.status} busy={detail.updatingStatus} onReopen={confirmReopen} />
         ) : loaded && members.length < 2 && group ? (
-          <InviteBanner code={group.invite_code} onShare={() => Share.share({ message: shareText })} />
+          <InviteBanner code={group.invite_code} onShare={share} />
         ) : null}
 
         {tab === 'expenses' ? (
           loaded && expenses.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="receipt-outline" size={48} color={colors.secondaryText} />
+              <Tile icon="receipt" size={56} iconSize={24} background={colors.surface} />
               <Text style={styles.emptyTitle}>No expenses yet</Text>
-              <Secondary style={{ textAlign: 'center' }}>Tap Add Expense to record who paid for what.</Secondary>
+              <T2 style={{ textAlign: 'center' }}>Tap Add Expense to record who paid for what.</T2>
             </View>
           ) : expenses.length > 0 ? (
-            <Section>
+            <Card>
               {expenses.map((expense) => (
                 <ExpenseRow
                   key={expense.id}
@@ -154,96 +171,85 @@ export default function GroupScreen() {
                   payerName={name(expense.paid_by)}
                   locked={locked}
                   onPress={() =>
-                    locked
-                      ? showLockedNotice()
-                      : router.push({ pathname: '/group/[id]/expense', params: { id, expenseId: expense.id } })
+                    locked ? showLockedNotice() : router.push({ pathname: '/group/[id]/expense', params: { id, expenseId: expense.id } })
                   }
                   onDelete={() => confirmDelete(expense)}
                 />
               ))}
-            </Section>
+            </Card>
           ) : null
         ) : (
           <>
-            <Section header="Balances">
+            {group?.status === 'settling' ? (
+              <>
+                <SectionHeader>Pay each other back</SectionHeader>
+                <Card>
+                  {payments.length === 0 ? (
+                    <Row>
+                      <T2>Everyone is settled up</T2>
+                    </Row>
+                  ) : null}
+                  {payments.map((payment) => (
+                    <Row key={paymentKey(payment)}>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <View style={styles.who} accessible accessibilityLabel={`${name(payment.from)} pays ${objectName(payment.to)}`}>
+                          <T1>{name(payment.from)}</T1>
+                          <Icon name="arrow-r" size={16} color={colors.textMuted} />
+                          <T1>{objectName(payment.to)}</T1>
+                        </View>
+                        <Amount cents={payment.amountCents} />
+                      </View>
+                      <Button title="Mark as Paid" variant="secondary" size="sm" onPress={() => confirmPaid(payment)} />
+                    </Row>
+                  ))}
+                </Card>
+                {payments.length > 0 ? <Footnote>Debts are simplified so the group needs the fewest payments.</Footnote> : null}
+              </>
+            ) : null}
+
+            {group?.status === 'settling' && settlements.length > 0 ? renderPayments() : null}
+
+            <SectionHeader>Balances</SectionHeader>
+            <Card>
               {members.map((member) => (
                 <Row key={member.id}>
-                  <Label style={{ flex: 1 }}>{name(member.id)}</Label>
+                  <Avatar name={member.display_name || '?'} me={member.id === userId} />
+                  <T1 style={{ flex: 1 }} numberOfLines={1}>
+                    {name(member.id)}
+                  </T1>
                   <BalanceLabel cents={balances.get(member.id) ?? 0} style={member.id === userId ? 'you' : 'member'} />
                 </Row>
               ))}
-            </Section>
+            </Card>
 
             {group?.status === 'active' ? (
-              <Section>
-                <View style={styles.settleCard}>
-                  <Text style={styles.cardTitle}>Done adding expenses?</Text>
-                  <Secondary>
-                    Settle Up locks the group and shows the fewest payments needed for everyone to pay each other back.
-                  </Secondary>
-                  <Button
-                    title="Settle Up"
-                    onPress={confirmSettleUp}
-                    disabled={expenses.length === 0}
-                    busy={detail.updatingStatus}
-                    style={{ marginTop: spacing.s }}
-                  />
-                </View>
-              </Section>
+              <Card style={{ padding: 18, gap: space.m }} separated={false}>
+                <Text style={styles.settleText}>
+                  <Text style={{ color: colors.text, fontFamily: fonts.medium }}>Done adding expenses? </Text>
+                  Settle Up locks the group and shows the fewest payments needed for everyone to pay each other back.
+                </Text>
+                <Button
+                  title="Settle Up"
+                  icon="swap"
+                  variant="amber"
+                  onPress={confirmSettleUp}
+                  disabled={expenses.length === 0}
+                  busy={detail.updatingStatus}
+                />
+              </Card>
             ) : null}
 
-            {group?.status === 'settling' ? (
-              <Section
-                header="Pay each other back"
-                footer={
-                  payments.length > 0
-                    ? 'Debts are simplified so the group needs the fewest payments. Mark each one once the money is sent.'
-                    : undefined
-                }
-              >
-                {payments.length === 0 ? (
-                  <Row>
-                    <Secondary>Everyone is settled up</Secondary>
-                  </Row>
-                ) : null}
-                {payments.map((payment) => (
-                  <Row key={paymentKey(payment)}>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Label>
-                        {name(payment.from)} → {objectName(payment.to)}
-                      </Label>
-                      <Text style={styles.amount}>{formatCents(payment.amountCents)}</Text>
-                    </View>
-                    <Button title="Mark as Paid" variant="secondary" onPress={() => confirmPaid(payment)} style={styles.smallButton} />
-                  </Row>
-                ))}
-              </Section>
-            ) : null}
-
-            {settlements.length > 0 ? (
-              <Section header="Payments">
-                {settlements.map((s) => (
-                  <Row key={s.id}>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Label style={type.subheadline}>
-                        {name(s.from_user)} paid {objectName(s.to_user)}
-                      </Label>
-                      <Text style={styles.caption}>{new Date(s.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</Text>
-                    </View>
-                    <Text style={styles.money}>{formatCents(s.amount_cents)}</Text>
-                  </Row>
-                ))}
-              </Section>
-            ) : null}
+            {group?.status !== 'settling' && settlements.length > 0 ? renderPayments() : null}
           </>
         )}
       </ScrollView>
 
       {/* Adding expenses is only possible while the group is active (not settling up). */}
       {!locked && group ? (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.s }]}>
+        <View style={[styles.bar, { paddingBottom: insets.bottom + 6 }]}>
           <Button
-            title="+  Add Expense"
+            title="Add Expense"
+            icon="plus"
             onPress={() => router.push({ pathname: '/group/[id]/expense', params: { id } })}
             disabled={members.length === 0}
           />
@@ -251,6 +257,28 @@ export default function GroupScreen() {
       ) : null}
     </View>
   );
+
+  function renderPayments() {
+    return (
+      <>
+        <SectionHeader>Payments</SectionHeader>
+        <Card>
+          {settlements.map((s) => (
+            <Row key={s.id}>
+              <Tile icon="coin" size={36} iconSize={18} color={colors.green} background={colors.greenTint} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T1>
+                  {name(s.from_user)} paid {objectName(s.to_user)}
+                </T1>
+                <T2>{formatDate(s.created_at)}</T2>
+              </View>
+              <Amount cents={s.amount_cents} color={colors.green} />
+            </Row>
+          ))}
+        </Card>
+      </>
+    );
+  }
 }
 
 function ExpenseRow({
@@ -266,17 +294,18 @@ function ExpenseRow({
   onPress: () => void;
   onDelete: () => void;
 }) {
-  const date = new Date(expense.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' });
+  const swipe = useRef<SwipeableMethods>(null);
   const label = `${expense.description}, ${payerName} paid, ${formatCents(expense.amount_cents)}`;
   const body = (
     <>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Label numberOfLines={2}>{expense.description}</Label>
-        <Text style={styles.caption}>
-          {payerName} paid · {date}
-        </Text>
+      <Tile icon={locked ? 'lock' : 'receipt'} color={locked ? colors.textDisabled : colors.textMuted} iconSize={locked ? 18 : 20} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <T1 numberOfLines={2}>{expense.description}</T1>
+        <T2>
+          {payerName} paid · {formatDate(expense.created_at)}
+        </T2>
       </View>
-      <Text style={styles.money}>{formatCents(expense.amount_cents)}</Text>
+      <Amount cents={expense.amount_cents} />
     </>
   );
 
@@ -284,12 +313,13 @@ function ExpenseRow({
     // A tap gesture (not a Pressable) that fails as soon as the finger moves, so a swipe on a locked
     // row doesn't count as a tap. There's no swipe action at all while locked.
     const tap = Gesture.Tap().maxDistance(10).runOnJS(true).onEnd((_e, success) => {
-      if (success) onPress();
+      // Open the dialog after the touch finishes: presenting a modal mid-gesture leaves it out of the accessibility tree.
+      if (success) setTimeout(onPress, 0);
     });
     return (
       <GestureDetector gesture={tap}>
         <View
-          style={uiStyles.row}
+          style={[ui.row, { minHeight: 60, backgroundColor: colors.surface }]}
           accessible
           accessibilityRole="button"
           accessibilityLabel={label}
@@ -302,99 +332,162 @@ function ExpenseRow({
     );
   }
 
-  const content = (
-    <Row
-      onPress={onPress}
-      accessibilityLabel={label}
-      accessibilityActions={[{ name: 'delete', label: 'Delete' }]}
-      onAccessibilityAction={(event) => {
-        if (event.nativeEvent.actionName === 'delete') onDelete();
-      }}
-    >
-      {body}
-    </Row>
-  );
   return (
     <ReanimatedSwipeable
+      ref={swipe}
       friction={2}
       rightThreshold={40}
       renderRightActions={() => (
-        <Pressable onPress={onDelete} style={styles.deleteAction} accessibilityLabel={`Delete ${expense.description}`}>
-          <Ionicons name="trash" size={20} color={colors.white} />
+        <Pressable
+          onPress={() => {
+            // Close first, so a cancelled delete doesn't leave the row open.
+            swipe.current?.close();
+            onDelete();
+          }}
+          style={styles.deleteAction}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${expense.description}`}
+        >
+          <Icon name="trash" size={20} color={colors.white} />
           <Text style={styles.deleteText}>Delete</Text>
         </Pressable>
       )}
     >
-      {content}
+      <Row
+        onPress={onPress}
+        style={{ backgroundColor: colors.surface }}
+        accessibilityLabel={label}
+        accessibilityActions={[{ name: 'delete', label: 'Delete' }]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'delete') onDelete();
+        }}
+      >
+        {body}
+      </Row>
     </ReanimatedSwipeable>
   );
 }
 
 function StatusBanner({ status, busy, onReopen }: { status: GroupStatus; busy: boolean; onReopen: () => void }) {
-  const settled = status === 'settled';
-  const tint = settled ? colors.green : colors.orange;
+  if (status === 'settled') return <SettledBanner busy={busy} onReopen={onReopen} />;
   return (
-    <Section cardStyle={{ backgroundColor: settled ? 'rgba(48,209,88,0.14)' : 'rgba(255,159,10,0.14)' }}>
-      <View style={styles.banner}>
-        <Ionicons name={settled ? 'checkmark-circle' : 'swap-horizontal'} size={26} color={tint} style={{ width: 28 }} />
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={styles.cardTitle}>{settled ? 'All settled up' : 'Settling up'}</Text>
-          <Secondary>
-            {settled
-              ? 'Everyone has been paid back.'
-              : 'Expenses are locked. Pay each other back using the list in Balances and mark each payment as paid.'}
-          </Secondary>
-          <Button title={busy ? 'Reopening…' : 'Reopen group'} variant="plain" onPress={onReopen} disabled={busy} style={{ alignSelf: 'flex-start' }} />
-        </View>
+    <View style={[styles.banner, { backgroundColor: colors.amberTint, borderColor: colors.amberLine }]} accessibilityRole="summary">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+        <Icon name="lock" size={18} color={colors.amber} />
+        <T1 style={{ color: colors.amber, fontFamily: fonts.semibold }}>Settling up</T1>
       </View>
-    </Section>
+      <Text style={[type.caption, { color: colors.amberText }]}>
+        Expenses are locked. Pay each other back using the list in Balances and mark each payment as paid.
+      </Text>
+      <LinkButton title={busy ? 'Reopening…' : 'Reopen group'} onPress={onReopen} disabled={busy} style={{ alignSelf: 'flex-start' }} />
+    </View>
+  );
+}
+
+/** "All settled up": the seal pops in and a few sparkles twinkle. */
+function SettledBanner({ busy, onReopen }: { busy: boolean; onReopen: () => void }) {
+  const pop = useSharedValue(0.6);
+  useEffect(() => {
+    pop.value = withSpring(1, { damping: 9, stiffness: 180 });
+  }, [pop]);
+  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }], opacity: Math.min(1, pop.value * 1.6 - 0.6) }));
+  return (
+    <View style={[styles.banner, styles.settled]} accessibilityRole="summary">
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <RadialGradient id="glow" cx="50%" cy="0%" rx="70%" ry="90%">
+            <Stop offset="0" stopColor="#143322" />
+            <Stop offset="1" stopColor={colors.greenTint} />
+          </RadialGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#glow)" />
+      </Svg>
+      <Sparkle style={{ left: 34, top: 26 }} size={16} color={colors.green} delay={0} />
+      <Sparkle style={{ right: 38, top: 44 }} size={12} color={colors.amber} delay={700} />
+      <Sparkle style={{ left: 70, top: 88 }} size={12} color={colors.green} delay={1100} />
+      <Animated.View style={popStyle}>
+        <Icon name="seal" size={40} color={colors.green} />
+      </Animated.View>
+      <Text style={styles.settledTitle}>All settled up</Text>
+      <T2>Everyone has been paid back.</T2>
+      <LinkButton title={busy ? 'Reopening…' : 'Reopen group'} onPress={onReopen} disabled={busy} />
+    </View>
+  );
+}
+
+function Sparkle({ style, size, color, delay }: { style: object; size: number; color: string; delay: number }) {
+  const t = useSharedValue(1);
+  useEffect(() => {
+    t.value = withDelay(delay, withRepeat(withSequence(withTiming(0.3, { duration: 900 }), withTiming(1, { duration: 900 })), -1));
+  }, [t, delay]);
+  const animated = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ scale: 0.6 + 0.4 * t.value }] }));
+  return (
+    <Animated.View style={[{ position: 'absolute' }, style, animated]} pointerEvents="none">
+      <Icon name="sparkle" size={size} color={color} />
+    </Animated.View>
   );
 }
 
 function InviteBanner({ code, onShare }: { code: string; onShare: () => void }) {
   return (
-    <Section>
-      <View style={{ padding: spacing.l, gap: spacing.s }}>
-        <Text style={styles.cardTitle}>Invite friends to this group</Text>
-        <Secondary>Share this code. Friends enter it with Join with Code.</Secondary>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text selectable style={styles.code}>
-            {code}
-          </Text>
-          <Button title="Share" onPress={onShare} style={{ minHeight: 36, paddingHorizontal: spacing.l }} />
-        </View>
+    <Card style={{ padding: space.m, gap: 14 }} separated={false}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Icon name="users" size={20} color={colors.accent} />
+        <T1 style={{ fontFamily: fonts.semibold }}>Invite friends to this group</T1>
       </View>
-    </Section>
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'stretch' }}>
+        <Text selectable style={styles.code} accessibilityLabel={`Invite code ${code.split('').join(' ')}`}>
+          {code}
+        </Text>
+        <Button title="Share" icon="share" size="sm" onPress={onShare} style={{ minHeight: 54 }} />
+      </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  segmented: { marginHorizontal: spacing.l, marginTop: spacing.m },
-  empty: { alignItems: 'center', gap: spacing.s, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyTitle: { ...type.headline, color: colors.text, fontSize: 20 },
-  settleCard: { padding: spacing.l, gap: spacing.s },
-  cardTitle: { ...type.headline, color: colors.text },
-  amount: { ...type.headline, color: colors.text, fontVariant: ['tabular-nums'] },
-  money: { ...type.body, color: colors.text, fontVariant: ['tabular-nums'], marginLeft: spacing.s },
-  caption: { ...type.caption, color: colors.secondaryText },
-  smallButton: { minHeight: 34, paddingHorizontal: spacing.m },
-  banner: { flexDirection: 'row', padding: spacing.l, gap: spacing.m },
-  code: { flex: 1, fontSize: 28, fontWeight: '700', fontFamily: 'Menlo', color: colors.text },
-  bottomBar: {
+  body: { paddingHorizontal: space.m, paddingTop: 4, gap: 20 },
+  empty: { alignItems: 'center', gap: 10, paddingTop: 80, paddingHorizontal: space.l },
+  emptyTitle: { fontFamily: fonts.semibold, fontSize: 18, color: colors.text, marginTop: 6 },
+  who: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  settleText: { ...type.caption, color: colors.textMuted, lineHeight: 22 },
+  banner: { borderRadius: radius.card, borderWidth: 1, padding: space.m, gap: 6 },
+  settled: {
+    backgroundColor: colors.greenTint,
+    borderColor: colors.greenLine,
+    alignItems: 'center',
+    paddingTop: 26,
+    paddingBottom: 10,
+    overflow: 'hidden',
+  },
+  settledTitle: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.4, color: colors.text, marginTop: 6 },
+  code: {
+    flex: 1,
+    fontFamily: fonts.mono,
+    fontSize: 26,
+    letterSpacing: 7,
+    textAlign: 'center',
+    color: colors.text,
+    paddingVertical: space.s,
+    paddingLeft: 8,
+    borderRadius: 12,
+    backgroundColor: colors.field,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.strongBorder,
+    overflow: 'hidden',
+  },
+  bar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: spacing.l,
-    paddingTop: spacing.s,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    paddingTop: space.s,
+    paddingHorizontal: space.m,
+    borderTopWidth: 1,
+    borderTopColor: '#1F2227',
+    backgroundColor: colors.bg,
   },
-  deleteAction: {
-    backgroundColor: colors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 88,
-    gap: 2,
-  },
-  deleteText: { ...type.caption, color: colors.white, fontWeight: '600' },
+  deleteAction: { width: 88, backgroundColor: colors.redFill, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  deleteText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.white },
 });

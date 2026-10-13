@@ -1,9 +1,12 @@
+import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, useFonts } from '@expo-google-fonts/geist';
+import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 import { DarkTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { DialogProvider } from '@/components/Dialog';
 import { colors } from '@/components/theme';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useForegroundUpdateCheck } from '@/lib/updates';
@@ -12,18 +15,28 @@ SplashScreen.preventAutoHideAsync();
 
 const theme = {
   ...DarkTheme,
-  colors: { ...DarkTheme.colors, primary: colors.accent, background: colors.background, card: colors.background },
+  colors: { ...DarkTheme.colors, primary: colors.accent, background: colors.bg, card: colors.bg, border: colors.hairline },
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    GeistMono_500Medium,
+  });
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ThemeProvider value={theme}>
-        <AuthProvider>
-          <RootNavigator />
-          <UpdateBanner />
-          <StatusBar style="light" />
-        </AuthProvider>
+        <DialogProvider>
+          <AuthProvider>
+            {/* Fonts ship inside the JS bundle, so they also update over the air. */}
+            {fontsLoaded || fontError ? <RootNavigator /> : null}
+            <UpdateBanner />
+            <StatusBar style="light" />
+          </AuthProvider>
+        </DialogProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
@@ -44,23 +57,29 @@ function RootNavigator() {
   const needsName = signedIn && profile != null && !profile.display_name;
 
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }}>
+    // Screens draw their own navigation bars (custom NavBar) to match the design.
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        <Stack.Screen name="sign-in" />
       </Stack.Protected>
       <Stack.Protected guard={needsName}>
-        <Stack.Screen name="name-setup" options={{ title: "What's your name?", headerBackVisible: false }} />
+        <Stack.Screen name="name-setup" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !needsName}>
-        <Stack.Screen name="index" options={{ title: 'Groups', headerLargeTitle: true }} />
-        <Stack.Screen name="group/[id]/index" options={{ title: '' }} />
-        <Stack.Screen name="group/[id]/expense" options={{ presentation: 'modal', title: 'Expense' }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="group/[id]/index" />
+        <Stack.Screen name="group/[id]/expense" options={{ presentation: 'modal' }} />
         <Stack.Screen
           name="new-group"
-          // headerShown must be fixed here: toggling it from inside a modal remounts the screen and loses its state.
-          options={{ presentation: 'formSheet', sheetAllowedDetents: [0.4], sheetGrabberVisible: true, headerShown: false }}
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
         />
-        <Stack.Screen name="settings" options={{ presentation: 'modal', title: 'Settings' }} />
+        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack.Protected>
     </Stack>
   );
