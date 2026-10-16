@@ -1,5 +1,5 @@
 # Supabase pauses free-plan projects after 7 days without activity. A tiny daily query keeps
-# the database awake. As an anonymous caller, RLS returns no rows, so no data is read.
+# the database awake. The anonymous caller has no access to any rows, so no data is read.
 # GitHub disables scheduled workflows after 60 days without commits; re-enable it in the Actions tab.
 name: Supabase keep-alive
 
@@ -24,4 +24,6 @@ jobs:
             -H "apikey: $SUPABASE_KEY" \
             "$SUPABASE_URL/rest/v1/groups?select=id&limit=1")
           echo "HTTP $status: $(cat response.json)"
-          test "$status" = 200
+          # The anon role has no grant on groups, so Postgres itself answers "permission denied"
+          # (42501). That still proves the database is up and counts as activity.
+          test "$status" = 200 || grep -q '"code":"42501"' response.json
