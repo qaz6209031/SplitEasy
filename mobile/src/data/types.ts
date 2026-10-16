@@ -1,5 +1,7 @@
 // Row shapes as returned by Supabase (snake_case, same as the database).
 
+import type { SplitMethod } from '@/domain/splits';
+
 export interface Profile {
   id: string;
   display_name: string;
@@ -20,6 +22,8 @@ export interface Group {
 export interface ExpenseSplit {
   user_id: string;
   amount_cents: number;
+  /** Percentage or share count typed for this person; null for equal and exact splits. */
+  split_value: number | null;
 }
 
 export interface Expense {
@@ -29,6 +33,7 @@ export interface Expense {
   amount_cents: number;
   paid_by: string;
   created_at: string;
+  split_method: SplitMethod;
   splits: ExpenseSplit[];
 }
 

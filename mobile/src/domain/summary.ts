@@ -3,12 +3,20 @@ import type { Expense, Group, Profile, Settlement } from '@/data/types';
 import { netBalances } from './balances';
 import { simplifyDebts } from './debts';
 import { formatCents } from './money';
+import type { SplitMethod } from './splits';
 
 const STATUS = {
   active: 'active (adding expenses)',
   settling: 'settling up (expenses locked)',
   settled: 'settled (everyone paid back)',
 } as const;
+
+const SPLIT_LABEL: Record<SplitMethod, string> = {
+  equal: 'split equally',
+  exact: 'split by exact amounts',
+  percent: 'split by percentage',
+  shares: 'split by shares',
+};
 
 const day = (iso: string) => iso.slice(0, 10);
 const byDate = <T extends { created_at: string }>(rows: T[]) =>
@@ -48,7 +56,7 @@ export function groupSummaryText({
     `Members (${members.length}): ${memberNames.join(', ')}`,
     '',
     'How SplitEasy calculates:',
-    '- Each expense is split equally among the people listed on it. If it doesn\'t divide evenly, some people pay $0.01 more; each person\'s exact share is listed.',
+    '- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person\'s exact share in dollars is listed; when an amount doesn\'t divide evenly, the extra cents go to whoever was closest to the next cent.',
     '- Balance = amount paid for expenses - own shares + payments sent - payments received. Positive means they get money back; negative means they owe.',
     '- Suggested repayments are the fewest payments that bring everyone to $0.00.',
     '',
@@ -57,9 +65,14 @@ export function groupSummaryText({
     ...byDate(expenses).map((e, i) => {
       const split = [...e.splits]
         .sort((a, b) => memberOrder(a.user_id) - memberOrder(b.user_id))
-        .map((s) => `${name(s.user_id)} ${formatCents(s.amount_cents)}`)
+        .map((s) => {
+          const v = s.split_value;
+          const typed = v == null ? '' : e.split_method === 'percent' ? ` (${v}%)` : ` (${v} share${v === 1 ? '' : 's'})`;
+          return `${name(s.user_id)} ${formatCents(s.amount_cents)}${typed}`;
+        })
         .join(', ');
-      return `${i + 1}. ${day(e.created_at)} | ${e.description} | ${formatCents(e.amount_cents)} paid by ${name(e.paid_by)} | split: ${split}`;
+      const how = SPLIT_LABEL[e.split_method] ?? SPLIT_LABEL.equal;
+      return `${i + 1}. ${day(e.created_at)} | ${e.description} | ${formatCents(e.amount_cents)} paid by ${name(e.paid_by)} | ${how}: ${split}`;
     }),
     '',
     `Payments already made (${settlements.length}):`,

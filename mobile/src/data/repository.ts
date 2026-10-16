@@ -3,9 +3,11 @@
 import { supabase } from '@/lib/supabase';
 import { netBalances } from '@/domain/balances';
 import type { Payment } from '@/domain/debts';
+import type { SplitMethod, SplitShare } from '@/domain/splits';
 import type { Expense, Group, Profile, Settlement } from './types';
 
-const expenseColumns = 'id, group_id, description, amount_cents, paid_by, created_at, splits:expense_splits(user_id, amount_cents)';
+const expenseColumns =
+  'id, group_id, description, amount_cents, paid_by, created_at, split_method, splits:expense_splits(user_id, amount_cents, split_value)';
 
 function check<T>(result: { data: T | null; error: { message: string } | null }): T {
   if (result.error) throw result.error;
@@ -71,23 +73,28 @@ export async function fetchSettlements(groupId: string): Promise<Settlement[]> {
 
 // Expenses
 
-/** Creates the expense when `expenseId` is null, otherwise updates it. Splits equally. */
+/**
+ * Creates the expense when `expenseId` is null, otherwise updates it. `shares` are each person's
+ * amount (from `computeSplit`); the database checks they add up to the total.
+ */
 export async function saveExpense(input: {
   expenseId: string | null;
   groupId: string;
   description: string;
   amountCents: number;
   paidBy: string;
-  participantIds: string[];
+  method: SplitMethod;
+  shares: SplitShare[];
 }): Promise<void> {
   check(
-    await supabase.rpc('save_expense', {
+    await supabase.rpc('save_expense_split', {
       p_expense_id: input.expenseId,
       p_group_id: input.groupId,
       p_description: input.description,
       p_amount_cents: input.amountCents,
       p_paid_by: input.paidBy,
-      p_participant_ids: input.participantIds,
+      p_split_method: input.method,
+      p_splits: input.shares.map((s) => ({ user_id: s.userId, amount_cents: s.amountCents, split_value: s.value })),
     }),
   );
 }

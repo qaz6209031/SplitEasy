@@ -6,14 +6,24 @@ import { useAuth } from '@/auth/AuthProvider';
 import { useDialog } from '@/components/Dialog';
 import { Icon } from '@/components/Icon';
 import { colors, fonts, radius, space, type } from '@/components/theme';
-import { Avatar, Button, Card, Checkbox, LinkButton, NavBar, Row, SectionHeader, T2, TextField } from '@/components/ui';
+import { Avatar, Button, Card, Checkbox, LinkButton, NavBar, Row, SectionHeader, SegmentedControl, T2, TextField } from '@/components/ui';
 import * as repo from '@/data/repository';
 import type { Profile } from '@/data/types';
-import { equalSplit } from '@/domain/balances';
 import { editableString, formatCents, parseCents } from '@/domain/money';
+import { computeSplit, formatHundredths, initialInputs, inputsFromShares, type SplitMethod, type SplitResult } from '@/domain/splits';
 import { userMessage } from '@/lib/supabase';
 
-/** Add or edit an expense. Amount first, big and centred; one payer; split equally among the ticked people. */
+const METHODS: { method: SplitMethod; label: string }[] = [
+  { method: 'equal', label: 'Equally' },
+  { method: 'exact', label: 'Amounts' },
+  { method: 'percent', label: 'Percent' },
+  { method: 'shares', label: 'Shares' },
+];
+
+/**
+ * Add or edit an expense. Amount first, big and centred; one payer; split equally among the ticked
+ * people, or by exact amounts, percentages or shares.
+ */
 export default function ExpenseFormScreen() {
   const { id: groupId, expenseId } = useLocalSearchParams<{ id: string; expenseId?: string }>();
   const { userId } = useAuth();
@@ -24,7 +34,11 @@ export default function ExpenseFormScreen() {
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
   const [paidBy, setPaidBy] = useState<string | null>(userId);
+  const [method, setMethod] = useState<SplitMethod>('equal');
+  /** Who's ticked for an equal split. */
   const [participants, setParticipants] = useState<Set<string>>(new Set());
+  /** What's typed per person for each of the other methods, kept while switching between them. */
+  const [inputs, setInputs] = useState<Partial<Record<SplitMethod, Record<string, string>>>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +55,10 @@ export default function ExpenseFormScreen() {
           setAmountText(editableString(existing.amount_cents));
           setPaidBy(existing.paid_by);
           setParticipants(new Set(existing.splits.map((s) => s.user_id)));
+          setMethod(existing.split_method);
+          if (existing.split_method !== 'equal') {
+            setInputs({ [existing.split_method]: inputsFromShares(existing.split_method, existing.splits) });
+          }
         } else {
           setParticipants(new Set(m.map((p) => p.id)));
         }
@@ -53,12 +71,31 @@ export default function ExpenseFormScreen() {
 
   const amountCents = parseCents(amountText);
   const amountInvalid = amountText.length > 0 && amountCents == null;
-  // Participants in member order, so leftover cents are assigned predictably (same as the server).
-  const ordered = useMemo(() => (members ?? []).map((m) => m.id).filter((id) => participants.has(id)), [members, participants]);
-  const shares = amountCents ? equalSplit(amountCents, ordered.length) : [];
-  const noneSelected = members != null && ordered.length === 0;
-  const valid = description.trim().length > 0 && amountCents != null && ordered.length > 0 && paidBy != null;
+  // Member order decides who gets leftover cents, so the preview matches what's saved.
+  const memberIds = useMemo(() => (members ?? []).map((m) => m.id), [members]);
+  const methodInputs = inputs[method];
+  const split = useMemo(
+    () => computeSplit(method, amountCents, memberIds, participants, methodInputs ?? {}),
+    [method, amountCents, memberIds, participants, methodInputs],
+  );
+  const shareOf = (id: string) => split.shares.find((s) => s.userId === id);
+  const noneSelected = members != null && method === 'equal' && participants.size === 0;
+  const valid = description.trim().length > 0 && amountCents != null && split.ok && paidBy != null;
   const displayName = (p: Profile) => (p.id === userId ? 'You' : p.display_name);
+
+  /** Switching methods starts from the people already on the expense, split evenly. */
+  function switchMethod(next: SplitMethod) {
+    if (next === method) return;
+    const current = split.shares.map((s) => s.userId);
+    const included = current.length > 0 ? current : memberIds;
+    if (next === 'equal') setParticipants(new Set(included));
+    else if (!inputs[next]) setInputs((all) => ({ ...all, [next]: initialInputs(next, amountCents, included) }));
+    setMethod(next);
+  }
+
+  function setInput(id: string, text: string) {
+    setInputs((all) => ({ ...all, [method]: { ...all[method], [id]: text } }));
+  }
 
   async function save() {
     if (!valid || saving || amountCents == null || paidBy == null) return;
@@ -70,7 +107,8 @@ export default function ExpenseFormScreen() {
         description: description.trim(),
         amountCents,
         paidBy,
-        participantIds: ordered,
+        method,
+        shares: split.shares,
       });
       router.back();
     } catch (error) {
@@ -170,30 +208,47 @@ export default function ExpenseFormScreen() {
             })}
           </View>
 
-          <SectionHeader>Split equally between</SectionHeader>
-          <Card style={noneSelected ? { borderColor: colors.redLine } : undefined}>
-            {members.map((member) => {
-              const checked = participants.has(member.id);
-              const index = ordered.indexOf(member.id);
-              const share = checked && index >= 0 ? shares[index] : undefined;
-              return (
+          <View style={{ gap: 10 }}>
+            <SectionHeader>Split</SectionHeader>
+            <SegmentedControl
+              values={METHODS.map((m) => m.label)}
+              index={METHODS.findIndex((m) => m.method === method)}
+              onChange={(i) => switchMethod(METHODS[i].method)}
+            />
+          </View>
+          <Card style={splitHasError(split, method, noneSelected) ? { borderColor: colors.redLine } : undefined}>
+            {members.map((member) =>
+              method === 'equal' ? (
                 <Row
                   key={member.id}
-                  minHeight={56}
+                  minHeight={72}
                   onPress={() => toggle(member.id)}
-                  selected={checked}
-                  accessibilityLabel={share != null ? `${displayName(member)}, ${formatCents(share)}` : displayName(member)}
+                  selected={participants.has(member.id)}
+                  accessibilityLabel={
+                    shareOf(member.id) ? `${displayName(member)}, ${formatCents(shareOf(member.id)!.amountCents)}` : displayName(member)
+                  }
                 >
-                  <Checkbox checked={checked} error={noneSelected} />
-                  <Text style={[type.body, { flex: 1, color: checked ? colors.text : colors.textMuted }]}>{displayName(member)}</Text>
-                  <Text style={[type.amount, { color: share != null ? colors.text : colors.textMuted }]}>
-                    {share != null ? formatCents(share) : '—'}
+                  <Checkbox checked={participants.has(member.id)} error={noneSelected} />
+                  <Text style={[type.body, { flex: 1, color: participants.has(member.id) ? colors.text : colors.textMuted }]}>
+                    {displayName(member)}
+                  </Text>
+                  <Text style={[type.amount, { color: shareOf(member.id) ? colors.text : colors.textMuted }]}>
+                    {shareOf(member.id) && amountCents ? formatCents(shareOf(member.id)!.amountCents) : '—'}
                   </Text>
                 </Row>
-              );
-            })}
+              ) : (
+                <SplitInputRow
+                  key={member.id}
+                  name={displayName(member)}
+                  method={method}
+                  value={methodInputs?.[member.id] ?? ''}
+                  onChange={(text) => setInput(member.id, text)}
+                  amountCents={amountCents ? shareOf(member.id)?.amountCents : undefined}
+                />
+              ),
+            )}
           </Card>
-          {noneSelected ? <T2 style={{ color: colors.red, marginTop: -12, marginHorizontal: 4 }}>Pick at least one person.</T2> : null}
+          <SplitStatus split={split} method={method} amountCents={amountCents} noneSelected={noneSelected} />
 
           {isEditing ? <Button title="Delete Expense" icon="trash" variant="redOutline" onPress={confirmDelete} /> : null}
         </ScrollView>
@@ -209,6 +264,105 @@ export default function ExpenseFormScreen() {
 function amountWidth(text: string) {
   const glyph = type.amountXL.fontSize * 0.6 + type.amountXL.letterSpacing;
   return Math.ceil((text.length || 4) * glyph) + 6;
+}
+
+function splitHasError(split: SplitResult, method: SplitMethod, noneSelected: boolean) {
+  if (method === 'equal') return noneSelected;
+  return split.invalid || (split.remaining != null && split.remaining < 0);
+}
+
+/** One person's amount, percentage or share count, with the resulting amount next to it. */
+function SplitInputRow({
+  name,
+  method,
+  value,
+  onChange,
+  amountCents,
+}: {
+  name: string;
+  method: SplitMethod;
+  value: string;
+  onChange: (text: string) => void;
+  amountCents: number | undefined;
+}) {
+  const unit = method === 'exact' ? 'amount' : method === 'percent' ? 'percent' : 'shares';
+  const [focused, setFocused] = useState(false);
+  return (
+    <Row minHeight={72}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[type.body, { color: colors.text }]} numberOfLines={1}>
+          {name}
+        </Text>
+        {method !== 'exact' ? <T2 style={type.amount}>{amountCents != null ? formatCents(amountCents) : '—'}</T2> : null}
+      </View>
+      <View style={[styles.splitInput, focused && { borderColor: colors.accent }]}>
+        {method === 'exact' ? <Text style={styles.splitAffix}>$</Text> : null}
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder={method === 'exact' ? '0.00' : '0'}
+          placeholderTextColor={colors.placeholder}
+          keyboardType="decimal-pad"
+          keyboardAppearance="dark"
+          selectionColor={colors.accent}
+          selectTextOnFocus
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={styles.splitText}
+          accessibilityLabel={`${name}, ${unit}`}
+        />
+        {method === 'percent' ? <Text style={styles.splitAffix}>%</Text> : null}
+        {method === 'shares' ? <Text style={styles.splitAffix}>×</Text> : null}
+      </View>
+    </Row>
+  );
+}
+
+/** "$12.00 left", "10% over", "Adds up to 100%": whether the split is complete. */
+function SplitStatus({
+  split,
+  method,
+  amountCents,
+  noneSelected,
+}: {
+  split: SplitResult;
+  method: SplitMethod;
+  amountCents: number | null;
+  noneSelected: boolean;
+}) {
+  let text: string | null = null;
+  let color: string = colors.textMuted;
+  const show = (r: number) => (method === 'exact' ? formatCents(r) : `${formatHundredths(r)}%`);
+  if (method === 'equal') {
+    if (noneSelected) [text, color] = ['Pick at least one person.', colors.red];
+    else {
+      const n = split.shares.length;
+      const low = amountCents && n > 0 ? Math.floor(amountCents / n) : 0;
+      const each = !amountCents || n === 0 ? '' : amountCents % n ? ` · ${formatCents(low)}–${formatCents(low + 1)} each` : ` · ${formatCents(low)} each`;
+      text = `Split between ${n} ${n === 1 ? 'person' : 'people'}${each}`;
+    }
+  } else if (split.invalid) {
+    [text, color] = ['Use numbers with up to 2 decimal places.', colors.red];
+  } else if (split.shares.length === 0) {
+    text = method === 'shares' ? 'Give at least one person a share.' : 'Enter at least one person.';
+  } else if (method === 'shares') {
+    const total = split.shares.reduce((sum, s) => sum + Math.round((s.value ?? 0) * 100), 0);
+    text = `${formatHundredths(total)} shares in total`;
+  } else if (method === 'exact' && amountCents == null) {
+    text = 'Enter the total amount first.';
+  } else if (split.remaining != null && split.remaining > 0) {
+    [text, color] = [`${show(split.remaining)} left to split`, colors.amber];
+  } else if (split.remaining != null && split.remaining < 0) {
+    [text, color] = [`${show(-split.remaining)} over`, colors.red];
+  } else {
+    [text, color] = [method === 'exact' ? `Adds up to ${formatCents(amountCents ?? 0)}` : 'Adds up to 100%', colors.green];
+  }
+  if (!text) return null;
+  return (
+    <Text style={[type.caption, { color, marginTop: -12, marginHorizontal: 4 }]} accessibilityLiveRegion="polite">
+      {text}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -237,4 +391,18 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.accentTint, borderColor: colors.accent },
   chipText: { fontFamily: fonts.medium, fontSize: 15, color: colors.text },
+  splitInput: {
+    width: 116,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.raised,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  splitAffix: { fontFamily: fonts.mono, fontSize: 15, color: colors.textMuted },
+  splitText: { flex: 1, fontFamily: fonts.mono, fontSize: 16, color: colors.text, textAlign: 'right', padding: 0 },
 });
