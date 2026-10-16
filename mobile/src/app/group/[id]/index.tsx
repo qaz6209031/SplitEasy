@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -39,6 +40,7 @@ import {
 import { isLocked, type Expense, type GroupStatus } from '@/data/types';
 import { paymentKey, type Payment } from '@/domain/debts';
 import { formatCents } from '@/domain/money';
+import { groupSummaryText } from '@/domain/summary';
 import { useGroupDetail } from '@/features/useGroupDetail';
 
 type Tab = 'expenses' | 'balances';
@@ -65,6 +67,19 @@ export default function GroupScreen() {
 
   const shareText = group ? `Join my group "${group.name}" on SplitEasy with invite code ${group.invite_code}` : '';
   const share = () => Share.share({ message: shareText });
+
+  /** "Copied" confirmation on the Copy as Text button; cleared after a moment. */
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  async function copySummary() {
+    if (!group) return;
+    await Clipboard.setStringAsync(groupSummaryText({ group, members, expenses, settlements, myId: userId }));
+    setCopied(true);
+  }
 
   async function confirmSettleUp() {
     const ok = await dialog.confirm({
@@ -240,6 +255,21 @@ export default function GroupScreen() {
             ) : null}
 
             {group?.status !== 'settling' && settlements.length > 0 ? renderPayments() : null}
+
+            {expenses.length > 0 ? (
+              <Card style={{ padding: 18, gap: space.m }} separated={false}>
+                <Text style={styles.settleText}>
+                  <Text style={{ color: colors.text, fontFamily: fonts.medium }}>Double-check the math? </Text>
+                  Copy every expense, payment and balance as text, then paste it into ChatGPT or another AI to verify.
+                </Text>
+                <Button
+                  title={copied ? 'Copied' : 'Copy as Text'}
+                  icon={copied ? 'check' : 'copy'}
+                  variant="secondary"
+                  onPress={copySummary}
+                />
+              </Card>
+            ) : null}
           </>
         )}
       </ScrollView>

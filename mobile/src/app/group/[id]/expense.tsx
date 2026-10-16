@@ -26,7 +26,6 @@ export default function ExpenseFormScreen() {
   const [paidBy, setPaidBy] = useState<string | null>(userId);
   const [participants, setParticipants] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [amountFocused, setAmountFocused] = useState(!expenseId);
 
   useEffect(() => {
     (async () => {
@@ -122,12 +121,7 @@ export default function ExpenseFormScreen() {
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Text style={styles.eyebrow}>Amount</Text>
-            <View
-              style={[
-                styles.amountRow,
-                { borderBottomColor: amountInvalid ? colors.red : amountFocused ? colors.accent : colors.border },
-              ]}
-            >
+            <View style={styles.amountRow}>
               <Text style={styles.dollar}>$</Text>
               <TextInput
                 value={amountText}
@@ -138,8 +132,6 @@ export default function ExpenseFormScreen() {
                 keyboardAppearance="dark"
                 selectionColor={colors.accent}
                 autoFocus={!isEditing}
-                onFocus={() => setAmountFocused(true)}
-                onBlur={() => setAmountFocused(false)}
                 style={[styles.amountInput, { width: amountWidth(amountText) }, amountInvalid && { color: colors.red }]}
                 accessibilityLabel="Amount"
               />
@@ -211,12 +203,12 @@ export default function ExpenseFormScreen() {
 }
 
 /**
- * The input doesn't grow with its text on iOS, so size it from the (monospaced) text,
- * otherwise "86.40" is cut off as "86.4".
+ * The input doesn't grow with its text on iOS, so size it from the (monospaced) text: wide enough
+ * not to cut off "86.40", and no wider, so "$" + amount stays centred. Empty, it fits the "0.00" placeholder.
  */
 function amountWidth(text: string) {
   const glyph = type.amountXL.fontSize * 0.6 + type.amountXL.letterSpacing;
-  return Math.ceil(Math.max(text.length, 4) * glyph) + 12;
+  return Math.ceil((text.length || 4) * glyph) + 6;
 }
 
 const styles = StyleSheet.create({
@@ -224,18 +216,11 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space.m, paddingTop: 4, paddingBottom: 40, gap: 20 },
   hero: { alignItems: 'center', gap: 6, paddingTop: space.xs, paddingBottom: 4 },
   eyebrow: { ...type.label, color: colors.textMuted },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    gap: 4,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.accent,
-    minWidth: 200,
-  },
-  dollar: { fontFamily: fonts.mono, fontSize: 32, color: colors.textMuted },
-  amountInput: { ...type.amountXL, height: 58, color: colors.text, maxWidth: 300, padding: 0 },
+  amountRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 4 },
+  // Baseline alignment against a TextInput leaves the "$" (which also hangs below the baseline) about
+  // 7pt low; measured on device. Lift it so its bottom lines up with the bottom of the digits.
+  dollar: { fontFamily: fonts.mono, fontSize: 32, color: colors.textMuted, transform: [{ translateY: -7 }] },
+  amountInput: { ...type.amountXL, height: 58, color: colors.text, maxWidth: 300, padding: 0, textAlign: 'center' },
   amountError: { color: colors.red, textAlign: 'center', marginTop: 6, marginHorizontal: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   chip: {

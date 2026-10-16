@@ -1,6 +1,7 @@
 import { equalSplit, netBalances } from '../balances';
 import { simplifyDebts } from '../debts';
 import { formatCents, parseCents } from '../money';
+import { groupSummaryText } from '../summary';
 import type { Expense, Settlement } from '@/data/types';
 
 let nextId = 0;
@@ -116,5 +117,51 @@ describe('money', () => {
 
   it('rejects invalid input', () => {
     for (const bad of ['', '0', 'abc', '1.234', '1.2.3', '-5']) expect(parseCents(bad)).toBeNull();
+  });
+});
+
+describe('group summary text', () => {
+  const members = [
+    { id: 'a', display_name: 'Alice', is_deleted: false },
+    { id: 'b', display_name: 'Bob', is_deleted: false },
+    { id: 'c', display_name: 'Carol', is_deleted: false },
+  ];
+
+  it('lists expenses, payments, balances and repayments', () => {
+    const text = groupSummaryText({
+      group: { name: 'Trip', status: 'settling' },
+      members,
+      // Splits listed out of member order, as the database may return them.
+      expenses: [
+        {
+          ...expense(1000, 'a', ['a', 'b', 'c']),
+          splits: [
+            { user_id: 'c', amount_cents: 333 },
+            { user_id: 'a', amount_cents: 334 },
+            { user_id: 'b', amount_cents: 333 },
+          ],
+        },
+        expense(600, 'b', ['b', 'c']),
+      ],
+      settlements: [settlement(100, 'c', 'a')],
+      myId: 'a',
+    });
+    expect(text).toContain('Members (3): Alice (me), Bob, Carol');
+    expect(text).toContain('Expenses (2, total $16.00):');
+    expect(text).toContain('$10.00 paid by Alice | split: Alice $3.34, Bob $3.33, Carol $3.33');
+    expect(text).toContain('1. 2026-01-01 | Carol paid Alice $1.00');
+    // Alice +10 - 3.34 - 1 = +5.66; Bob +6 - 3.33 - 3 = -0.33; Carol -3.33 - 3 + 1 = -5.33
+    expect(text).toContain('- Alice: gets back $5.66');
+    expect(text).toContain('- Bob: owes $0.33');
+    expect(text).toContain('- Carol: owes $5.33');
+    expect(text).toContain('Carol pays Alice $5.33');
+    expect(text).toContain('Bob pays Alice $0.33');
+  });
+
+  it('says when there is nothing to repay', () => {
+    const text = groupSummaryText({ group: { name: 'Empty', status: 'active' }, members, expenses: [], settlements: [], myId: null });
+    expect(text).toContain('Expenses (0, total $0.00):\nNone');
+    expect(text).toContain('None, everyone is settled up.');
+    expect(text).toContain('- Bob: settled up ($0.00)');
   });
 });
