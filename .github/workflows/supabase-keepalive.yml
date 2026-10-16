@@ -1,5 +1,7 @@
-# Supabase pauses free-plan projects after 7 days without activity. A tiny daily query keeps
-# the database awake. The anonymous caller has no access to any rows, so no data is read.
+# Supabase pauses free-plan projects after 7 days without enough database activity
+# (https://supabase.com/docs/guides/platform/free-project-pausing). Once a day this calls
+# keep_alive() (supabase/migrations/20261016000000_keep_alive.sql), which updates one timestamp
+# row: a real write, and no user data is touched.
 # GitHub disables scheduled workflows after 60 days without commits; re-enable it in the Actions tab.
 name: Supabase keep-alive
 
@@ -15,15 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Query the database
+      - name: Write a heartbeat to the database
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          status=$(curl -sS -o response.json -w '%{http_code}' --retry 3 --retry-delay 10 \
-            -H "apikey: $SUPABASE_KEY" \
-            "$SUPABASE_URL/rest/v1/groups?select=id&limit=1")
-          echo "HTTP $status: $(cat response.json)"
-          # The anon role has no grant on groups, so Postgres itself answers "permission denied"
-          # (42501). That still proves the database is up and counts as activity.
-          test "$status" = 200 || grep -q '"code":"42501"' response.json
+          curl -sS --fail-with-body --retry 3 --retry-delay 10 -X POST \
+            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}' \
+            "$SUPABASE_URL/rest/v1/rpc/keep_alive"
