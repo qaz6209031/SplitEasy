@@ -1,0 +1,27 @@
+# Supabase pauses free-plan projects after 7 days without activity. A tiny daily query keeps
+# the database awake. As an anonymous caller, RLS returns no rows, so no data is read.
+# GitHub disables scheduled workflows after 60 days without commits; re-enable it in the Actions tab.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 16 * * *" # daily, 16:17 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query the database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          status=$(curl -sS -o response.json -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/groups?select=id&limit=1")
+          echo "HTTP $status: $(cat response.json)"
+          test "$status" = 200
