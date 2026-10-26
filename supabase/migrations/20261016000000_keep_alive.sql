@@ -1,6 +1,6 @@
 -- Free-plan projects are paused after a week without database activity. A GitHub Actions job
--- (.github/workflows/supabase-keepalive.yml) calls keep_alive() daily: one small write, which
--- counts as activity. It touches only this table's single row, never user data.
+-- (.github/workflows/supabase-keepalive.yml) calls keep_alive() every 4 hours: small writes, which
+-- count as activity. It touches only this table's single row, never user data.
 
 create table public.keep_alive (
   id boolean primary key default true check (id),
