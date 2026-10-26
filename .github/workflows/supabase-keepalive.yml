@@ -1,13 +1,16 @@
 # Supabase pauses free-plan projects after 7 days without enough database activity
-# (https://supabase.com/docs/guides/platform/free-project-pausing). Once a day this calls
-# keep_alive() (supabase/migrations/20261016000000_keep_alive.sql), which updates one timestamp
-# row: a real write, and no user data is touched.
+# (https://supabase.com/docs/guides/platform/free-project-pausing): "a few user requests to the
+# database each day" is enough, so one request/day was too few even though every run succeeded.
+# This now runs every 4 hours (6 times/day) and fires the keep_alive() RPC
+# (supabase/migrations/20261016000000_keep_alive.sql) twice per run, for ~12 real DB
+# writes/day. It touches only that function's single row, never user data.
 # GitHub disables scheduled workflows after 60 days without commits; re-enable it in the Actions tab.
+# Scheduled runs can be delayed or dropped under GitHub Actions load, so more frequent/day gives slack.
 name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: "17 16 * * *" # daily, 16:17 UTC
+    - cron: "23 */4 * * *" # every 4 hours at :23, off the top of the hour
   workflow_dispatch:
 
 permissions: {}
@@ -17,11 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Write a heartbeat to the database
+      - name: Write a heartbeat to the database (twice, for extra activity signal)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          curl -sS --fail-with-body --retry 3 --retry-delay 10 -X POST \
-            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}' \
-            "$SUPABASE_URL/rest/v1/rpc/keep_alive"
+          for i in 1 2; do
+            curl -sS --fail-with-body --retry 3 --retry-delay 10 -X POST \
+              -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}' \
+              "$SUPABASE_URL/rest/v1/rpc/keep_alive"
+          done

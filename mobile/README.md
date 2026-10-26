@@ -11,7 +11,7 @@ cd mobile
 npm install
 npx expo run:ios                 # builds a Debug app into the simulator and starts Metro
 ```
-- **`.env`** (committed) holds the Supabase URL and publishable key for local builds. Both are public by design; Row Level Security protects the data.
+- **`.env`** (git-ignored) holds the Supabase URL and publishable key for local builds. Both are public by design; Row Level Security protects the data.
 - **EAS environment variables** hold the same two values for `eas update` and `eas build` (environments `production`, `preview`, `development`). `eas update --environment …` reads **only** these, not `.env`; an update published without them crashes on launch. Check with `npx eas-cli@latest env:list --environment production`.
 - **`.env.development.local`** (git-ignored) holds `EXPO_PUBLIC_DEV_ACCOUNT_PASSWORD` for the Debug-only Alice/Bob/Carol buttons. Production builds and `eas update` never load this file, and the `__DEV__` branch that reads it is stripped from release bundles.
 
