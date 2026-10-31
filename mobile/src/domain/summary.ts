@@ -50,12 +50,12 @@ export function groupSummaryText({
   const memberNames = members.map((m) => (m.id === myId ? `${name(m.id)} (me)` : name(m.id)));
 
   const lines = [
-    `SplitEasy group: ${group.name}`,
+    `Tabmates group: ${group.name}`,
     `Status: ${STATUS[group.status]}`,
     'Currency: US dollars',
     `Members (${members.length}): ${memberNames.join(', ')}`,
     '',
-    'How SplitEasy calculates:',
+    'How Tabmates calculates:',
     '- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person\'s exact share in dollars is listed; when an amount doesn\'t divide evenly, the extra cents go to whoever was closest to the next cent.',
     '- Balance = amount paid for expenses - own shares + payments sent - payments received. Positive means they get money back; negative means they owe.',
     '- Suggested repayments are the fewest payments that bring everyone to $0.00.',

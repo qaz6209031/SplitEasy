@@ -1,4 +1,4 @@
-# SplitEasy
+# Tabmates
 
 A Splitwise-style app for iOS (Android-ready):
 - Sign in with Apple or Google.

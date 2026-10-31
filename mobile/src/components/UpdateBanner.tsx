@@ -16,7 +16,7 @@ export function UpdateBanner() {
       <Tile icon="refresh" color={colors.green} background={colors.greenTint} size={36} iconSize={18} />
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>Update ready</Text>
-        <T2>A new version of SplitEasy is ready.</T2>
+        <T2>A new version of Tabmates is ready.</T2>
       </View>
       <Button title="Restart" variant="green" size="sm" onPress={() => Updates.reloadAsync()} />
     </View>

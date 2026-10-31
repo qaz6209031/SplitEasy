@@ -1,9 +1,9 @@
 ---
-title: SplitEasy
+title: Tabmates
 permalink: /
 ---
 
-# SplitEasy
+# Tabmates
 
 Share expenses with friends during a trip, then settle up at the end with the fewest payments.
 

@@ -42,7 +42,7 @@ export default function SettingsScreen() {
     setChecking(true);
     try {
       const result = await checkAndDownloadUpdate();
-      if (result === 'up-to-date') await dialog.alert('Up to date', 'You have the latest version of SplitEasy.');
+      if (result === 'up-to-date') await dialog.alert('Up to date', 'You have the latest version of Tabmates.');
     } catch (error) {
       await dialog.alert("Couldn't check for updates", userMessage(error));
     } finally {
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     const ok = await dialog.confirm({
       title: 'Delete your account?',
       message: usesAppleSignIn
-        ? "Apple will ask you to confirm, then SplitEasy's access to your Apple ID is revoked. This can't be undone."
+        ? "Apple will ask you to confirm, then Tabmates' access to your Apple ID is revoked. This can't be undone."
         : "This can't be undone.",
       confirmTitle: 'Delete',
       tone: 'red',
@@ -131,7 +131,7 @@ export default function SettingsScreen() {
             )
           ) : null}
         </Card>
-        <Footnote>SplitEasy updates itself in the background.</Footnote>
+        <Footnote>Tabmates updates itself in the background.</Footnote>
 
         <Card>
           <Row onPress={signOut} minHeight={56} style={{ justifyContent: 'center' }} accessibilityLabel="Sign Out">

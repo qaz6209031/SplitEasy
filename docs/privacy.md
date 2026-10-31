@@ -3,11 +3,11 @@ title: Privacy Policy
 permalink: /privacy/
 ---
 
-# SplitEasy Privacy Policy
+# Tabmates Privacy Policy
 
 _Last updated: October 8, 2026_
 
-SplitEasy helps groups of friends track shared expenses and settle up. This policy explains what we collect, why, and your choices.
+Tabmates helps groups of friends track shared expenses and settle up. This policy explains what we collect, why, and your choices.
 
 ## What we collect
 - **Account information:** the display name and email address you share when you sign in with Apple or Google, and the account identifier Apple or Google gives us. If you use Apple's "Hide My Email", we only receive the relay address.
@@ -32,7 +32,7 @@ We don't sell your data or use it for advertising.
 
 ## Deleting your account
 Go to **Settings → Delete Account**.
-- Your sign-in is removed, and for Sign in with Apple, SplitEasy's access to your Apple ID is revoked.
+- Your sign-in is removed, and for Sign in with Apple, Tabmates' access to your Apple ID is revoked.
 - Expenses you shared stay in your groups, shown as "Deleted user", so other members' balances still add up. Your name and email are removed.
 
 ## Contact
