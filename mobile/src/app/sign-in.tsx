@@ -42,7 +42,7 @@ export default function SignInScreen() {
           <Icon name="logo" size={48} />
         </View>
         <Text style={styles.title} accessibilityRole="header">
-          SplitEasy
+          Tabmates
         </Text>
         <Text style={styles.tagline}>Share expenses with friends. Settle up with the fewest payments.</Text>
       </View>

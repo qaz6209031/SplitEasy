@@ -65,7 +65,7 @@ export default function GroupScreen() {
   /** Mid-sentence form: "Alice paid you". */
   const objectName = (personId: string) => (personId === userId ? 'you' : name(personId));
 
-  const shareText = group ? `Join my group "${group.name}" on SplitEasy with invite code ${group.invite_code}` : '';
+  const shareText = group ? `Join my group "${group.name}" on Tabmates with invite code ${group.invite_code}` : '';
   const share = () => Share.share({ message: shareText });
 
   /** "Copied" confirmation on the Copy as Text button; cleared after a moment. */

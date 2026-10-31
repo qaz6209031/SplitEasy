@@ -1,6 +1,6 @@
-# SplitEasy (Expo / React Native)
+# Tabmates (Expo / React Native)
 
-The SplitEasy app rebuilt with Expo SDK 57, Expo Router and TypeScript. It uses the same Supabase backend as the Swift app (`../supabase/`), so nothing on the server changed.
+The Tabmates app rebuilt with Expo SDK 57, Expo Router and TypeScript. It uses the same Supabase backend as the Swift app (`../supabase/`), so nothing on the server changed.
 
 - **iOS first**, written cross-platform so Android only needs its Google sign-in setup and testing.
 - **Over-the-air updates** with EAS Update. JavaScript and asset changes reach users without an App Store release (see below).
@@ -24,7 +24,7 @@ npx expo-doctor
 ```
 
 ## Over-the-air updates (EAS Update)
-- **How the app updates:** on every cold start (`checkAutomatically: ON_LOAD`) and whenever the app returns to the foreground, it checks for an update and downloads it in the background. A "A new version of SplitEasy is ready, Restart" banner appears; otherwise the update applies on the next launch. Settings shows which version is running and has **Check for Updates**.
+- **How the app updates:** on every cold start (`checkAutomatically: ON_LOAD`) and whenever the app returns to the foreground, it checks for an update and downloads it in the background. A "A new version of Tabmates is ready, Restart" banner appears; otherwise the update applies on the next launch. Settings shows which version is running and has **Check for Updates**.
 - **Runtime version:** `runtimeVersion.policy = "fingerprint"`. Expo hashes the native project, so an update only reaches builds with the same native code. Adding a native module or changing `app.json` native settings produces a new fingerprint, which needs a new store build.
 - **Channels:** `eas.json` maps build profiles to channels: `development`, `preview`, `production`.
 
