@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#16181D;--ink2:#5E626C;--ink3:#9A9EA7;--rule:#E7E8EC;--track:#EEEFF2;--bg:#FFFFFF;
+--you:#2B4BD8;--alice:#D99A1E;--bob:#138A9A;--cancel:#34408A;--pos:#14824F;--neg:#B4372A}
+html,body{width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);
+font:17px/22px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+.num{font-family:Archivo,sans-serif;font-variation-settings:"wdth" 82;font-weight:700;font-feature-settings:"tnum"}
+.status{height:54px;display:flex;align-items:center;justify-content:space-between;padding:14px 34px 0 46px;font-weight:600;font-size:17px}
+.nav{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.nav a{color:var(--ink);text-decoration:none;font-size:17px}
+.nav b{font-weight:600}
+.seg{margin:8px 16px 0;background:var(--track);border-radius:9px;padding:2px;display:flex;height:32px}
+.seg span{flex:1;text-align:center;font-size:13px;line-height:28px;font-weight:500;color:var(--ink)}
+.seg .on{background:#fff;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.hero{padding:22px 16px 6px}
+.hero p{font-size:15px;color:var(--ink2)}
+.hero .num{font-size:56px;line-height:58px;letter-spacing:-1.5px;color:var(--ink)}
+.state{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2);padding:0 16px 14px}
+.state i{width:7px;height:7px;border-radius:50%;background:#C98A0B;display:inline-block}
+h3{font-size:13px;font-weight:600;color:var(--ink2);padding:14px 16px 6px}
+.stamp{width:30px;height:36px;padding:3px;flex:none;
+background:radial-gradient(circle at 3px 3px,var(--bg) 1.7px,transparent 1.9px) 0 0/6px 6px,var(--c)}
+.stamp div{width:100%;height:100%;background:var(--c);outline:1px solid rgba(255,255,255,.55);outline-offset:-3px;
+color:#fff;font:700 13px/30px Archivo,sans-serif;text-align:center}
+.row{display:flex;align-items:center;gap:12px;padding:8px 16px;min-height:52px}
+.row .who{width:62px;font-size:17px}
+.bar{flex:1;height:6px;background:var(--track);border-radius:3px;position:relative}
+.bar b{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--c)}
+.amt{width:84px;text-align:right;font-size:19px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.line{height:1px;background:var(--rule);margin-left:58px}
+.pay{display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:64px;position:relative}
+.pay .arrow{color:var(--ink3);font-size:15px}
+.pay .lbl{font-size:15px;color:var(--ink2);flex:1}
+.pay .lbl b{display:block;color:var(--ink);font-weight:500;font-size:17px}
+.pay .amt{width:auto;font-size:19px}
+.paid .lbl,.paid .amt,.paid .stamp{opacity:.45}
+.mark{border:1.5px solid var(--ink);border-radius:999px;padding:0 14px;height:36px;line-height:33px;font-size:15px;font-weight:600;margin-left:6px}
+.pm{position:absolute;right:68px;top:-6px;width:84px;height:84px;transform:rotate(-14deg);opacity:.9}
+.foot{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 34px;border-top:1px solid var(--rule);background:#fff}
+.foot p{font-size:13px;color:var(--ink2);text-align:center;margin-bottom:10px}
+.btn{height:52px;border-radius:14px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px}
+</style></head><body>
+<div class="status"><span>9:41</span><span style="font-size:13px">●●● ▮</span></div>
+<div class="nav"><a>‹ Groups</a><b>Tokyo Trip</b><a>Invite</a></div>
+<div class="seg"><span>Expenses</span><span class="on">Balances</span></div>
+
+<div class="hero"><p>You get back</p><div class="num">$295.50</div></div>
+<div class="state"><i></i>Settling · expenses are locked</div>
+
+<h3>Balances</h3>
+<div class="row"><div class="stamp" style="--c:var(--you)"><div>C</div></div><span class="who">You</span>
+  <div class="bar"><b style="--c:var(--you);left:50%;width:50%"></b></div><span class="amt num pos">+295.50</span></div>
+<div class="line"></div>
+<div class="row"><div class="stamp" style="--c:var(--alice)"><div>A</div></div><span class="who">Alice</span>
+  <div class="bar"><b style="--c:var(--alice);right:50%;width:16.3%"></b></div><span class="amt num neg">−96.30</span></div>
+<div class="line"></div>
+<div class="row"><div class="stamp" style="--c:var(--bob)"><div>B</div></div><span class="who">Bob</span>
+  <div class="bar"><b style="--c:var(--bob);right:50%;width:33.7%"></b></div><span class="amt num neg">−199.20</span></div>
+
+<h3>2 payments settle everyone</h3>
+<div class="pay paid">
+  <div class="stamp" style="--c:var(--alice)"><div>A</div></div><span class="arrow">→</span>
+  <div class="stamp" style="--c:var(--you)"><div>C</div></div>
+  <div class="lbl"><b>Alice pays you</b>Paid Oct 14</div><span class="amt num">$96.30</span>
+  <svg class="pm" viewBox="0 0 100 100" fill="none" stroke="var(--cancel)">
+    <circle cx="50" cy="50" r="44" stroke-width="2.4"/><circle cx="50" cy="50" r="30" stroke-width="1.4"/>
+    <defs><path id="ring" d="M50 50 m-37 0 a37 37 0 1 1 74 0 a37 37 0 1 1 -74 0"/></defs>
+    <text font-family="Archivo" font-size="9" font-weight="700" letter-spacing="1.6" fill="var(--cancel)" stroke="none">
+      <textPath href="#ring">TOKYO TRIP · TABMATES · TOKYO TRIP ·</textPath></text>
+    <text x="50" y="47" text-anchor="middle" font-family="Archivo" font-size="12" font-weight="800" fill="var(--cancel)" stroke="none">PAID</text>
+    <text x="50" y="60" text-anchor="middle" font-family="Archivo" font-size="8" font-weight="600" fill="var(--cancel)" stroke="none">14 OCT 26</text>
+  </svg>
+</div>
+<div class="line"></div>
+<div class="pay">
+  <div class="stamp" style="--c:var(--bob)"><div>B</div></div><span class="arrow">→</span>
+  <div class="stamp" style="--c:var(--you)"><div>C</div></div>
+  <div class="lbl"><b>Bob pays you</b>Waiting</div><span class="amt num">$199.20</span><span class="mark">Paid</span>
+</div>
+
+<div class="foot"><p>Missed an expense? Reopen the group to edit.</p><div class="btn">Reopen group</div></div>
+</body></html>

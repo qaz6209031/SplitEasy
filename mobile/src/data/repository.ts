@@ -50,6 +50,15 @@ export async function fetchMyBalances(userId: string): Promise<Map<string, numbe
   return result;
 }
 
+/** Members of every group you belong to, in join order, keyed by group id (for the stamps on the Groups list). */
+export async function fetchMembersByGroup(): Promise<Map<string, Profile[]>> {
+  const result = await supabase.from('group_members').select('group_id, profile:profiles(*)').order('joined_at');
+  const rows = check(result) as unknown as { group_id: string; profile: Profile }[];
+  const byGroup = new Map<string, Profile[]>();
+  for (const row of rows) byGroup.set(row.group_id, [...(byGroup.get(row.group_id) ?? []), row.profile]);
+  return byGroup;
+}
+
 // Group detail
 
 export async function fetchMembers(groupId: string): Promise<Profile[]> {

@@ -1,7 +1,8 @@
-// Icons from the design: 24-unit grid, 1.75 stroke, round caps and joins.
+// Icons: 24-unit grid, 1.75 stroke, round caps and joins.
+import type { ColorValue } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from './theme';
+import { colors, useResolve } from './theme';
 
 const S = 'stroke';
 const F = 'fill';
@@ -12,9 +13,7 @@ const ICONS = {
   plus: [['M12 5v14M5 12h14', S]],
   user: [['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2', S], ['M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', S]],
   receipt: [['M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z', S], ['M9 8h6M9 12h6M9 16h3', S]],
-  coin: [['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', S], ['M14.6 9.3c-.4-.8-1.4-1.3-2.6-1.3-1.5 0-2.5.8-2.5 1.9 0 2.6 5 1.4 5 4.1 0 1.1-1.1 2-2.5 2-1.2 0-2.2-.5-2.6-1.4M12 6.5V8M12 16v1.5', S]],
   swap: [['M7 7h13M16 3l4 4-4 4', S], ['M17 17H4M8 13l-4 4 4 4', S]],
-  seal: [['M12 2.5l2.4 1.7 2.9-.1.9 2.8 2.3 1.8-.9 2.8.9 2.8-2.3 1.8-.9 2.8-2.9-.1L12 21.5l-2.4-1.7-2.9.1-.9-2.8-2.3-1.8.9-2.8-.9-2.8 2.3-1.8.9-2.8 2.9.1z', S], ['M8.5 12l2.5 2.5 4.5-5', S]],
   trash: [['M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', S]],
   copy: [['M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z', S], ['M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1', S]],
   share: [['M12 3v12M8 7l4-4 4 4', S], ['M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7', S]],
@@ -26,32 +25,28 @@ const ICONS = {
     ['M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z', '#FBBC05'],
     ['M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z', '#EA4335'],
   ],
-  sparkle: [['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', F]],
+  // A round date cancel with two wavy lines (the "Settled" mark).
+  postmark: [['M9.5 5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13z', S], ['M9.5 9a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z', S], ['M17.5 9.5q1.25-1.5 2.5 0t2.5 0M17.5 13.5q1.25-1.5 2.5 0t2.5 0', S]],
   check: [['M5 12.5l4.5 4.5L19 7.5', S]],
   'chev-r': [['M9 6l6 6-6 6', S]],
   'chev-l': [['M15 6l-6 6 6 6', S]],
   'arrow-r': [['M5 12h14M13 6l6 6-6 6', S]],
   x: [['M6 6l12 12M18 6L6 18', S]],
   refresh: [['M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7', S]],
-  // Two coin halves (white + accent) and a sparkle.
-  logo: [
-    ['M11 3a7.5 7.5 0 0 0 0 15z', '#EDEEF0'],
-    ['M13 6a7.5 7.5 0 0 1 0 15z', '#8B9BFF'],
-    ['M19.5 1l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z', '#8B9BFF'],
-  ],
 } satisfies Record<string, Layer[]>;
 
 export type IconName = keyof typeof ICONS;
 
-export function Icon({ name, size = 20, color = colors.text }: { name: IconName; size?: number; color?: string }) {
+export function Icon({ name, size = 20, color = colors.ink }: { name: IconName; size?: number; color?: ColorValue }) {
   const layers: Layer[] = ICONS[name];
+  const ink = useResolve()(color);
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {layers.map(([d, paint], index) =>
         paint === S ? (
-          <Path key={index} d={d} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+          <Path key={index} d={d} fill="none" stroke={ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
         ) : (
-          <Path key={index} d={d} fill={paint === F ? color : paint} />
+          <Path key={index} d={d} fill={paint === F ? ink : paint} />
         ),
       )}
     </Svg>

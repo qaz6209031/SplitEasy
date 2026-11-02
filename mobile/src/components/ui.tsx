@@ -1,4 +1,4 @@
-// Component kit matching the "SplitEasy — UI" design's component sheet.
+// Component kit for the Postmark world: ink controls on a white card ground, no boxed sections.
 import { Children, Fragment, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   View,
+  type ColorValue,
   type PressableProps,
   type StyleProp,
   type TextInputProps,
@@ -17,19 +18,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatCents } from '@/domain/money';
 import { Icon, type IconName } from './Icon';
-import { colors, fonts, radius, sizes, space, type } from './theme';
+import { colors, radius, sizes, space, type } from './theme';
 
 // Buttons
 
-type ButtonVariant = 'primary' | 'secondary' | 'amber' | 'green' | 'red' | 'redOutline';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'dangerOutline';
 
-const buttonColors: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
-  primary: { bg: colors.text, fg: colors.onLight },
-  secondary: { bg: colors.raised, fg: colors.text, border: colors.border },
-  amber: { bg: colors.amber, fg: colors.onLight },
-  green: { bg: colors.green, fg: colors.onLight },
-  red: { bg: colors.redFill, fg: colors.white },
-  redOutline: { bg: 'transparent', fg: colors.red, border: colors.redLine },
+const buttonColors: Record<ButtonVariant, { bg: ColorValue; fg: ColorValue; border?: ColorValue }> = {
+  primary: { bg: colors.ink, fg: colors.onInk },
+  secondary: { bg: 'transparent', fg: colors.ink, border: colors.ink },
+  danger: { bg: colors.danger, fg: colors.white },
+  dangerOutline: { bg: 'transparent', fg: colors.danger, border: colors.danger },
 };
 
 export function Button({
@@ -54,7 +53,7 @@ export function Button({
   accessibilityLabel?: string;
 }) {
   const off = disabled || busy;
-  const palette = off && !busy ? { bg: colors.raised, fg: colors.textDisabled } : buttonColors[variant];
+  const palette = disabled && !busy ? { bg: colors.fill, fg: colors.ink3 } : buttonColors[variant];
   return (
     <Pressable
       onPress={onPress}
@@ -62,16 +61,17 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: !!off, busy: !!busy }}
+      hitSlop={size === 'sm' ? 4 : 0}
       style={({ pressed }) => [
         styles.button,
         size === 'sm' && styles.buttonSm,
         { backgroundColor: palette.bg },
-        'border' in palette && palette.border && !off ? { borderWidth: 1, borderColor: palette.border } : null,
-        pressed && { transform: [{ scale: 0.98 }], opacity: 0.85 },
+        'border' in palette && palette.border && !disabled ? { borderWidth: 1.5, borderColor: palette.border } : null,
+        pressed && { opacity: 0.7 },
         style,
       ]}
     >
-      {busy ? <ActivityIndicator size="small" color={palette.fg} /> : icon ? <Icon name={icon} size={size === 'sm' ? 18 : 20} color={palette.fg} /> : null}
+      {busy ? <ActivityIndicator size="small" color={palette.fg} /> : icon ? <Icon name={icon} size={size === 'sm' ? 17 : 20} color={palette.fg} /> : null}
       <Text
         style={[styles.buttonText, size === 'sm' && styles.buttonTextSm, { color: palette.fg }]}
         numberOfLines={1}
@@ -84,14 +84,14 @@ export function Button({
   );
 }
 
-/** Text-only "plain" button in the accent color (navigation bar actions, "Reopen group"). */
+/** Text-only "plain" button (navigation bar actions, "Reopen group"). */
 export function LinkButton({
   title,
   onPress,
   icon,
   iconSize = 20,
   bold,
-  color = colors.accent,
+  color = colors.ink,
   disabled,
   style,
 }: {
@@ -100,7 +100,7 @@ export function LinkButton({
   icon?: IconName;
   iconSize?: number;
   bold?: boolean;
-  color?: string;
+  color?: ColorValue;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
@@ -112,23 +112,25 @@ export function LinkButton({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [styles.link, { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }, style]}
+      style={({ pressed }) => [styles.link, { opacity: disabled ? 0.35 : pressed ? 0.5 : 1 }, style]}
     >
       {icon ? <Icon name={icon} size={iconSize} color={color} /> : null}
-      <Text style={[styles.linkText, { color, fontFamily: bold ? fonts.semibold : fonts.medium }]}>{title}</Text>
+      <Text style={[styles.linkText, { color, fontWeight: bold ? '600' : '400' }]}>{title}</Text>
     </Pressable>
   );
 }
 
-export function IconButton({ icon, onPress, label, active }: { icon: IconName; onPress: () => void; label: string; active?: boolean }) {
+/** Bare 44pt icon button for navigation bars. */
+export function IconButton({ icon, onPress, label, size = 24 }: { icon: IconName; onPress: () => void; label: string; size?: number }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [styles.iconButton, (active || pressed) && styles.iconButtonActive]}
+      hitSlop={4}
+      style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.5 }]}
     >
-      <Icon name={icon} size={20} />
+      <Icon name={icon} size={size} />
     </Pressable>
   );
 }
@@ -136,7 +138,7 @@ export function IconButton({ icon, onPress, label, active }: { icon: IconName; o
 // Layout
 
 /**
- * Custom navigation bar: left / centered title / right, below the status bar.
+ * Navigation bar: left / centred title / right, below the status bar.
  * `inSheet`: inside a page-sheet modal, which already starts below the status bar.
  */
 export function NavBar({ left, title, right, inSheet }: { left?: ReactNode; title?: string; right?: ReactNode; inSheet?: boolean }) {
@@ -156,14 +158,29 @@ export function NavBar({ left, title, right, inSheet }: { left?: ReactNode; titl
   );
 }
 
-/** Rounded surface. As a list (default) children are separated by 1px hairlines (the design's "card list"). */
-export function Card({ children, style, separated = true }: { children: ReactNode; style?: StyleProp<ViewStyle>; separated?: boolean }) {
+/** Inset grouped list (settings-shaped content only). Children are separated by hairlines. */
+export function Group({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const items = Children.toArray(children).filter(Boolean);
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.group, style]}>
       {items.map((child, index) => (
         <Fragment key={index}>
-          {separated && index > 0 ? <View style={styles.hairline} /> : null}
+          {index > 0 ? <View style={[styles.hairline, { marginLeft: space.m }]} /> : null}
+          {child}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+/** Plain list: rows on the page ground, hairlines inset to the text column. */
+export function List({ children, inset = space.m, style }: { children: ReactNode; inset?: number; style?: StyleProp<ViewStyle> }) {
+  const items = Children.toArray(children).filter(Boolean);
+  return (
+    <View style={style}>
+      {items.map((child, index) => (
+        <Fragment key={index}>
+          {index > 0 ? <View style={[styles.hairline, { marginLeft: inset }]} /> : null}
           {child}
         </Fragment>
       ))}
@@ -202,19 +219,22 @@ export function Row({
       accessibilityState={selected === undefined ? undefined : { selected }}
       accessibilityActions={accessibilityActions}
       onAccessibilityAction={onAccessibilityAction}
-      style={({ pressed }) => [styles.row, { minHeight }, pressed && { backgroundColor: colors.raised }, style]}
+      style={({ pressed }) => [styles.row, { minHeight }, pressed && { backgroundColor: colors.fill }, style]}
     >
       {children}
     </Pressable>
   );
 }
 
-/** Mono, upper-case section label ("PAY EACH OTHER BACK"). */
-export function SectionHeader({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
+/** Section title in sentence case ("Balances"). Optional trailing detail on the same line. */
+export function SectionHeader({ children, detail, style }: { children: ReactNode; detail?: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <Text style={[styles.sectionHeader, style]} accessibilityRole="header">
-      {children}
-    </Text>
+    <View style={[styles.sectionHeader, style]}>
+      <Text style={styles.sectionText} accessibilityRole="header">
+        {children}
+      </Text>
+      {detail ? <Text style={styles.sectionDetail}>{detail}</Text> : null}
+    </View>
   );
 }
 
@@ -238,72 +258,51 @@ export function T2({ children, style, numberOfLines }: { children: ReactNode; st
   );
 }
 
-export function Amount({ cents, color = colors.text, style }: { cents: number; color?: string; style?: StyleProp<TextStyle> }) {
-  return <Text style={[type.amount, { color }, style]}>{formatCents(cents)}</Text>;
-}
-
-// Small pieces
-
-export function Badge({ status }: { status: 'settling' | 'settled' }) {
-  const settled = status === 'settled';
-  const fg = settled ? colors.green : colors.amber;
-  return (
-    <View style={[styles.badge, { backgroundColor: settled ? colors.greenBadge : colors.amberBadge }]}>
-      <View style={[styles.badgeDot, { backgroundColor: fg }]} />
-      <Text style={[styles.badgeText, { color: fg }]}>{settled ? 'Settled' : 'Settling up'}</Text>
-    </View>
-  );
-}
-
-export function Avatar({ name, me, size = 36 }: { name: string; me?: boolean; size?: number }) {
-  return (
-    <View
-      style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }, me && { backgroundColor: colors.accent }]}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Text style={[styles.avatarText, { fontSize: size <= 30 ? 13 : 14 }, me && { color: colors.onLight }]}>
-        {(name.trim()[0] ?? '?').toUpperCase()}
-      </Text>
-    </View>
-  );
-}
-
-export function Tile({ icon, color = colors.textMuted, background = colors.raised, size = 40, iconSize = 20 }: {
-  icon: IconName;
-  color?: string;
-  background?: string;
-  size?: number;
-  iconSize?: number;
+export function Amount({
+  cents,
+  color = colors.ink,
+  signed,
+  small,
+  style,
+}: {
+  cents: number;
+  color?: ColorValue;
+  signed?: boolean;
+  small?: boolean;
+  style?: StyleProp<TextStyle>;
 }) {
+  const sign = signed && cents !== 0 ? (cents > 0 ? '+' : '−') : '';
+  return <Text style={[small ? type.amountSm : type.amount, { color }, style]}>{sign + formatCents(Math.abs(cents))}</Text>;
+}
+
+/** "Settling up" / "Settled" as a dot and a word, in the state's colour. */
+export function StatusLine({ status }: { status: 'settling' | 'settled' }) {
+  const settled = status === 'settled';
+  const fg = settled ? colors.cancel : colors.warn;
   return (
-    <View style={[styles.tile, { width: size, height: size, borderRadius: size >= 40 ? 12 : 10, backgroundColor: background }]}>
-      <Icon name={icon} size={iconSize} color={color} />
+    <View style={styles.status}>
+      {settled ? null : <View style={[styles.statusDot, { backgroundColor: fg }]} />}
+      <Text style={[styles.statusText, { color: fg }]}>{settled ? 'Settled' : 'Settling up'}</Text>
     </View>
   );
 }
 
 export function Checkbox({ checked, error }: { checked: boolean; error?: boolean }) {
   return (
-    <View style={[styles.checkbox, checked && styles.checkboxOn, error && !checked && { borderColor: colors.red }]}>
-      {checked ? <Icon name="check" size={16} color={colors.white} /> : null}
+    <View style={[styles.checkbox, checked && styles.checkboxOn, error && !checked && { borderColor: colors.danger }]}>
+      {checked ? <Icon name="check" size={15} color={colors.onInk} /> : null}
     </View>
   );
 }
 
-/** "you are owed $x" / "you owe $x" / "settled up" with the amount in mono. */
-export function BalanceLabel({ cents, style }: { cents: number; style: 'summary' | 'you' | 'member' }) {
-  if (cents === 0) return <T2>settled up</T2>;
+/** "you're owed $x" / "you owe $x" / "all square", right-aligned. */
+export function BalanceLabel({ cents }: { cents: number }) {
+  if (cents === 0) return <T2>all square</T2>;
   const owed = cents > 0;
-  const caption = {
-    summary: owed ? 'you are owed' : 'you owe',
-    you: owed ? 'get back' : 'owe',
-    member: owed ? 'gets back' : 'owes',
-  }[style];
   return (
-    <View style={{ alignItems: 'flex-end', gap: 1 }}>
-      <T2>{caption}</T2>
-      <Amount cents={Math.abs(cents)} color={owed ? colors.green : colors.amber} />
+    <View style={{ alignItems: 'flex-end' }}>
+      <Text style={styles.balanceCaption}>{owed ? 'you’re owed' : 'you owe'}</Text>
+      <Amount cents={Math.abs(cents)} color={owed ? colors.pos : colors.neg} />
     </View>
   );
 }
@@ -319,14 +318,16 @@ export function SegmentedControl({ values, index, onChange }: { values: string[]
           accessibilityState={{ selected: i === index }}
           style={[styles.segment, i === index && styles.segmentOn]}
         >
-          <Text style={[styles.segmentText, i === index && { color: colors.text }]}>{value}</Text>
+          <Text style={[styles.segmentText, i === index && styles.segmentTextOn]} numberOfLines={1}>
+            {value}
+          </Text>
         </Pressable>
       ))}
     </View>
   );
 }
 
-/** Labelled text field with the design's focus ring and error state. */
+/** Labelled text field: filled, no border until focus (ink) or error (red). */
 export function TextField({
   label,
   error,
@@ -339,9 +340,8 @@ export function TextField({
     <View style={style}>
       {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       <TextInput
-        placeholderTextColor={colors.placeholder}
-        selectionColor={colors.accent}
-        keyboardAppearance="dark"
+        placeholderTextColor={colors.ink3}
+        selectionColor={colors.ink}
         accessibilityLabel={label}
         {...props}
         onFocus={(e) => {
@@ -352,22 +352,17 @@ export function TextField({
           setFocused(false);
           props.onBlur?.(e);
         }}
-        style={[
-          styles.field,
-          focused && styles.fieldFocused,
-          error && styles.fieldError,
-          inputStyle,
-        ]}
+        style={[styles.field, focused && styles.fieldFocused, error && styles.fieldError, inputStyle]}
       />
     </View>
   );
 }
 
-export function ErrorCard({ title, message }: { title: string; message: string }) {
+export function ErrorNote({ title, message }: { title: string; message: string }) {
   return (
-    <View style={styles.errorCard} accessibilityRole="alert">
-      <Text style={[styles.t1, { color: colors.red, fontFamily: fonts.semibold }]}>{title}</Text>
-      <Text style={[styles.t2, { color: colors.redText }]}>{message}</Text>
+    <View style={styles.errorNote} accessibilityRole="alert">
+      <Text style={[styles.t1, { color: colors.danger, fontWeight: '600' }]}>{title}</Text>
+      <Text style={[styles.t2, { color: colors.ink }]}>{message}</Text>
     </View>
   );
 }
@@ -382,58 +377,62 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.xs,
   },
-  buttonSm: { minHeight: sizes.buttonSmH, borderRadius: 12, paddingHorizontal: 14 },
-  buttonText: { fontFamily: fonts.semibold, fontSize: 17, letterSpacing: -0.2, textAlign: 'center', flexShrink: 1 },
+  buttonSm: { minHeight: sizes.buttonSmH, borderRadius: radius.pill, paddingHorizontal: 14 },
+  buttonText: { fontSize: 17, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
   buttonTextSm: { fontSize: 15 },
-  link: { minHeight: sizes.hitMin, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 2 },
+  link: { minHeight: sizes.hitMin, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 2 },
   linkText: { fontSize: 17 },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  nav: { height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: space.xs },
+  navSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  navTitle: { ...type.headline, color: colors.ink, textAlign: 'center', flexShrink: 1, maxWidth: '56%' },
+  group: { backgroundColor: colors.surface, borderRadius: radius.group, overflow: 'hidden' },
+  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: colors.strongRule },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.s, paddingHorizontal: space.m, paddingVertical: 10 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: space.m, gap: space.s },
+  sectionText: { ...type.section, color: colors.ink, flexShrink: 1 },
+  sectionDetail: { ...type.footnote, color: colors.ink2 },
+  footnote: { ...type.footnote, color: colors.ink2, paddingHorizontal: space.m },
+  t1: { ...type.body, color: colors.ink },
+  t2: { ...type.subhead, color: colors.ink2 },
+  balanceCaption: { ...type.footnote, color: colors.ink2 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  statusText: { ...type.footnote, fontWeight: '600' },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: colors.strongRule,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
   },
-  iconButtonActive: { backgroundColor: colors.selected, borderColor: colors.strongBorder },
-  nav: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: space.xs },
-  navSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  navTitle: { ...type.headline, color: colors.text, textAlign: 'center', flexShrink: 1, maxWidth: '55%' },
-  card: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, overflow: 'hidden' },
-  hairline: { height: 1, backgroundColor: '#1F2227' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.s, paddingHorizontal: space.m, paddingVertical: space.s },
-  sectionHeader: { ...type.label, color: colors.textMuted, marginHorizontal: 4, marginBottom: -10 },
-  footnote: { ...type.caption, color: colors.textMuted, marginHorizontal: 4, marginTop: -10 },
-  t1: { ...type.bodyMedium, color: colors.text },
-  t2: { ...type.caption, color: colors.textMuted },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radius.pill, alignSelf: 'flex-start' },
-  badgeDot: { width: 6, height: 6, borderRadius: 3 },
-  badgeText: { fontFamily: fonts.medium, fontSize: 13 },
-  avatar: { backgroundColor: colors.hairline, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: fonts.semibold, color: colors.text },
-  tile: { alignItems: 'center', justifyContent: 'center' },
-  checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1.5, borderColor: colors.strongBorder, alignItems: 'center', justifyContent: 'center' },
-  checkboxOn: { backgroundColor: colors.accentFill, borderColor: colors.accentFill },
-  segmented: { flexDirection: 'row', gap: 2, padding: 3, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.hairline },
-  segment: { flex: 1, height: 40, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  segmentOn: { backgroundColor: colors.selected, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
-  segmentText: { fontFamily: fonts.medium, fontSize: 15, color: colors.textMuted },
-  fieldLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.textMuted, marginLeft: 2, marginBottom: space.xs },
+  checkboxOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  segmented: { flexDirection: 'row', padding: 2, borderRadius: 9, backgroundColor: colors.fill },
+  segment: { flex: 1, minHeight: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segmentOn: {
+    backgroundColor: colors.bg,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  segmentText: { fontSize: 14, fontWeight: '500', color: colors.ink2 },
+  segmentTextOn: { color: colors.ink, fontWeight: '600' },
+  fieldLabel: { ...type.footnote, fontWeight: '500', color: colors.ink2, marginLeft: 2, marginBottom: 6 },
   field: {
-    height: sizes.fieldH,
+    minHeight: sizes.fieldH,
     borderRadius: radius.field,
-    backgroundColor: colors.field,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontFamily: fonts.regular,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    color: colors.ink,
     fontSize: 17,
-    paddingHorizontal: space.m,
-    letterSpacing: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  fieldFocused: { borderColor: colors.accent, shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 3, shadowOffset: { width: 0, height: 0 } },
-  fieldError: { borderColor: colors.red },
-  errorCard: { padding: space.m, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.redTint, borderWidth: 1, borderColor: colors.redLine, gap: 2 },
+  fieldFocused: { borderColor: colors.ink },
+  fieldError: { borderColor: colors.danger },
+  errorNote: { padding: 14, borderRadius: radius.field, backgroundColor: colors.dangerTint, gap: 2 },
 });

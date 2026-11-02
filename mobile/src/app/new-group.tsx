@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, type } from '@/components/theme';
-import { Button, ErrorCard, LinkButton, TextField } from '@/components/ui';
+import { Button, ErrorNote, LinkButton, TextField } from '@/components/ui';
 import { createGroup, joinGroup } from '@/data/repository';
 import { userMessage } from '@/lib/supabase';
 
@@ -59,15 +59,15 @@ export default function NewGroupSheet() {
         error={!!error}
         inputStyle={isJoin ? styles.code : null}
       />
-      {error ? <ErrorCard title={isJoin ? "Couldn't join group" : "Couldn't create group"} message={error} /> : null}
+      {error ? <ErrorNote title={isJoin ? "Couldn't join group" : "Couldn't create group"} message={error} /> : null}
       <Button title={isJoin ? 'Join' : 'Create'} onPress={submit} disabled={!valid} busy={busy} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.surface, paddingTop: 22, paddingHorizontal: 20, paddingBottom: 46, gap: 20 },
+  container: { backgroundColor: colors.bg, paddingTop: 18, paddingHorizontal: 20, paddingBottom: 46, gap: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { ...type.title, color: colors.text },
-  code: { height: 64, textAlign: 'center', fontFamily: fonts.mono, fontSize: 28, letterSpacing: 9, paddingLeft: 28 },
+  title: { ...type.title, color: colors.ink },
+  code: { height: 64, textAlign: 'center', fontFamily: fonts.moneyBold, fontSize: 30, letterSpacing: 9, paddingLeft: 28 },
 });

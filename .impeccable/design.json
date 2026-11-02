@@ -1,0 +1,544 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T00:00:00Z",
+  "title": "Design System: Tabmates",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Letterpress Ink",
+        "canonical": "#16181D",
+        "tonalRamp": [
+          "oklch(15% 0.004 268)",
+          "oklch(27% 0.006 268)",
+          "oklch(39% 0.008 268)",
+          "oklch(51% 0.010 268)",
+          "oklch(63% 0.009 268)",
+          "oklch(75% 0.007 268)",
+          "oklch(86% 0.005 268)",
+          "oklch(95% 0.004 268)"
+        ],
+        "darkAppearance": "#F1F2F4"
+      },
+      "cancel-blue": {
+        "role": "secondary",
+        "displayName": "Postmark Blue",
+        "canonical": "#34408A",
+        "tonalRamp": [
+          "oklch(15% 0.047 273)",
+          "oklch(27% 0.070 273)",
+          "oklch(39% 0.093 273)",
+          "oklch(51% 0.115 273)",
+          "oklch(63% 0.108 273)",
+          "oklch(75% 0.085 273)",
+          "oklch(86% 0.064 273)",
+          "oklch(95% 0.047 273)"
+        ],
+        "darkAppearance": "#9DA8F2"
+      },
+      "stamp-ultramarine": {
+        "role": "tertiary",
+        "displayName": "Ultramarine Stamp",
+        "canonical": "#2B4BD8",
+        "tonalRamp": [
+          "oklch(15% 0.083 267)",
+          "oklch(27% 0.123 267)",
+          "oklch(39% 0.164 267)",
+          "oklch(51% 0.204 267)",
+          "oklch(63% 0.191 267)",
+          "oklch(75% 0.150 267)",
+          "oklch(86% 0.113 267)",
+          "oklch(95% 0.083 267)"
+        ]
+      },
+      "stamp-ochre": {
+        "role": "tertiary",
+        "displayName": "Ochre Stamp",
+        "canonical": "#9C6B00",
+        "tonalRamp": [
+          "oklch(15% 0.045 77)",
+          "oklch(27% 0.067 77)",
+          "oklch(39% 0.089 77)",
+          "oklch(51% 0.111 77)",
+          "oklch(63% 0.103 77)",
+          "oklch(75% 0.082 77)",
+          "oklch(86% 0.062 77)",
+          "oklch(95% 0.045 77)"
+        ]
+      },
+      "stamp-teal": {
+        "role": "tertiary",
+        "displayName": "Teal Stamp",
+        "canonical": "#0F7A89",
+        "tonalRamp": [
+          "oklch(15% 0.034 210)",
+          "oklch(27% 0.050 210)",
+          "oklch(39% 0.067 210)",
+          "oklch(51% 0.083 210)",
+          "oklch(63% 0.078 210)",
+          "oklch(75% 0.061 210)",
+          "oklch(86% 0.046 210)",
+          "oklch(95% 0.034 210)"
+        ]
+      },
+      "stamp-rose": {
+        "role": "tertiary",
+        "displayName": "Rose Stamp",
+        "canonical": "#B8306A",
+        "tonalRamp": [
+          "oklch(15% 0.068 359)",
+          "oklch(27% 0.101 359)",
+          "oklch(39% 0.134 359)",
+          "oklch(51% 0.167 359)",
+          "oklch(63% 0.156 359)",
+          "oklch(75% 0.123 359)",
+          "oklch(86% 0.093 359)",
+          "oklch(95% 0.068 359)"
+        ]
+      },
+      "stamp-violet": {
+        "role": "tertiary",
+        "displayName": "Violet Stamp",
+        "canonical": "#7A3FC4",
+        "tonalRamp": [
+          "oklch(15% 0.075 300)",
+          "oklch(27% 0.112 300)",
+          "oklch(39% 0.148 300)",
+          "oklch(51% 0.185 300)",
+          "oklch(63% 0.173 300)",
+          "oklch(75% 0.136 300)",
+          "oklch(86% 0.103 300)",
+          "oklch(95% 0.075 300)"
+        ]
+      },
+      "stamp-umber": {
+        "role": "tertiary",
+        "displayName": "Umber Stamp",
+        "canonical": "#8A5A2B",
+        "tonalRamp": [
+          "oklch(15% 0.034 63)",
+          "oklch(27% 0.050 63)",
+          "oklch(39% 0.067 63)",
+          "oklch(51% 0.083 63)",
+          "oklch(63% 0.078 63)",
+          "oklch(75% 0.061 63)",
+          "oklch(86% 0.046 63)",
+          "oklch(95% 0.034 63)"
+        ]
+      },
+      "pos": {
+        "role": "state",
+        "displayName": "Gain Green",
+        "canonical": "#14824F",
+        "tonalRamp": [
+          "oklch(15% 0.047 157)",
+          "oklch(27% 0.070 157)",
+          "oklch(39% 0.092 157)",
+          "oklch(51% 0.115 157)",
+          "oklch(63% 0.107 157)",
+          "oklch(75% 0.085 157)",
+          "oklch(86% 0.064 157)",
+          "oklch(95% 0.047 157)"
+        ],
+        "darkAppearance": "#4CC38A"
+      },
+      "neg": {
+        "role": "state",
+        "displayName": "Debt Red",
+        "canonical": "#B4372A",
+        "tonalRamp": [
+          "oklch(15% 0.062 30)",
+          "oklch(27% 0.093 30)",
+          "oklch(39% 0.123 30)",
+          "oklch(51% 0.153 30)",
+          "oklch(63% 0.143 30)",
+          "oklch(75% 0.113 30)",
+          "oklch(86% 0.085 30)",
+          "oklch(95% 0.062 30)"
+        ],
+        "darkAppearance": "#F0806F"
+      },
+      "warn": {
+        "role": "state",
+        "displayName": "Settling Amber",
+        "canonical": "#9A6200",
+        "tonalRamp": [
+          "oklch(15% 0.045 71)",
+          "oklch(27% 0.067 71)",
+          "oklch(39% 0.088 71)",
+          "oklch(51% 0.110 71)",
+          "oklch(63% 0.103 71)",
+          "oklch(75% 0.081 71)",
+          "oklch(86% 0.061 71)",
+          "oklch(95% 0.045 71)"
+        ],
+        "darkAppearance": "#E7B34A"
+      },
+      "danger": {
+        "role": "state",
+        "displayName": "Danger Red",
+        "canonical": "#C8302F",
+        "tonalRamp": [
+          "oklch(15% 0.072 26)",
+          "oklch(27% 0.107 26)",
+          "oklch(39% 0.142 26)",
+          "oklch(51% 0.177 26)",
+          "oklch(63% 0.166 26)",
+          "oklch(75% 0.131 26)",
+          "oklch(86% 0.098 26)",
+          "oklch(95% 0.072 26)"
+        ],
+        "darkAppearance": "#FF6B66"
+      },
+      "card-white": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(27% 0.000 90)",
+          "oklch(39% 0.000 90)",
+          "oklch(51% 0.000 90)",
+          "oklch(63% 0.000 90)",
+          "oklch(75% 0.000 90)",
+          "oklch(86% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ],
+        "darkAppearance": "#0E0F12"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Grouped Grey",
+        "canonical": "#F4F5F7",
+        "tonalRamp": [
+          "oklch(15% 0.001 265)",
+          "oklch(27% 0.002 265)",
+          "oklch(39% 0.002 265)",
+          "oklch(51% 0.003 265)",
+          "oklch(63% 0.003 265)",
+          "oklch(75% 0.002 265)",
+          "oklch(86% 0.001 265)",
+          "oklch(95% 0.001 265)"
+        ],
+        "darkAppearance": "#18191D"
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Track Grey",
+        "canonical": "#ECEDF0",
+        "tonalRamp": [
+          "oklch(15% 0.002 271)",
+          "oklch(27% 0.002 271)",
+          "oklch(39% 0.003 271)",
+          "oklch(51% 0.004 271)",
+          "oklch(63% 0.004 271)",
+          "oklch(75% 0.003 271)",
+          "oklch(86% 0.002 271)",
+          "oklch(95% 0.002 271)"
+        ],
+        "darkAppearance": "#25272C"
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E6E7EB",
+        "tonalRamp": [
+          "oklch(15% 0.002 275)",
+          "oklch(27% 0.003 275)",
+          "oklch(39% 0.004 275)",
+          "oklch(51% 0.005 275)",
+          "oklch(63% 0.005 275)",
+          "oklch(75% 0.004 275)",
+          "oklch(86% 0.003 275)",
+          "oklch(95% 0.002 275)"
+        ],
+        "darkAppearance": "#27292E"
+      },
+      "strong-rule": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#C9CBD1",
+        "tonalRamp": [
+          "oklch(15% 0.003 271)",
+          "oklch(27% 0.005 271)",
+          "oklch(39% 0.006 271)",
+          "oklch(51% 0.008 271)",
+          "oklch(63% 0.008 271)",
+          "oklch(75% 0.006 271)",
+          "oklch(86% 0.004 271)",
+          "oklch(95% 0.003 271)"
+        ],
+        "darkAppearance": "#3A3D44"
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#5E626C",
+        "tonalRamp": [
+          "oklch(15% 0.006 268)",
+          "oklch(27% 0.009 268)",
+          "oklch(39% 0.013 268)",
+          "oklch(51% 0.016 268)",
+          "oklch(63% 0.015 268)",
+          "oklch(75% 0.012 268)",
+          "oklch(86% 0.009 268)",
+          "oklch(95% 0.006 268)"
+        ],
+        "darkAppearance": "#A3A7B0"
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#8E929B",
+        "tonalRamp": [
+          "oklch(15% 0.005 267)",
+          "oklch(27% 0.008 267)",
+          "oklch(39% 0.011 267)",
+          "oklch(51% 0.013 267)",
+          "oklch(63% 0.012 267)",
+          "oklch(75% 0.010 267)",
+          "oklch(86% 0.007 267)",
+          "oklch(95% 0.005 267)"
+        ],
+        "darkAppearance": "#70747D"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Large screen titles (Groups, sign-in, name setup). Archivo ExtraBold."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Empty states and the settled-group title."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Sentence-case section headers."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Nav titles, button labels, dialog titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row text and fields; follows Dynamic Type."
+      },
+      "callout": {
+        "displayName": "Callout",
+        "purpose": "Secondary emphasis text."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Secondary lines, explanatory blocks, dialog messages."
+      },
+      "footnote": {
+        "displayName": "Footnote",
+        "purpose": "Captions, day labels (600), status words (600), field labels."
+      },
+      "amount-hero": {
+        "displayName": "Amount Hero",
+        "purpose": "The one large ink number per screen."
+      },
+      "amount": {
+        "displayName": "Amount",
+        "purpose": "Money in rows, one right-hand column."
+      },
+      "amount-sm": {
+        "displayName": "Amount Small",
+        "purpose": "Compact money values."
+      }
+    },
+    "appearance": {
+      "mode": "system",
+      "note": "Every theme colour is a DynamicColorIOS light/dark pair; resolve with useResolve() where a plain string is needed (SVG). Stamp colours are not paired."
+    },
+    "stampAssignment": {
+      "function": "assignStampColors",
+      "rule": "Member id hashes (x31) to a stamp colour so a person keeps it across groups; on a clash within one group the later joiner takes the next free colour."
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 12px 24px rgba(0,0,0,0.18)",
+        "purpose": "Floating layers only: dialog, toast, update banner."
+      },
+      {
+        "name": "segment-lift",
+        "value": "0 1px 4px rgba(0,0,0,0.12)",
+        "purpose": "Selected segment of the segmented control (native lift)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "postmark-land",
+        "value": "320ms, scale 1.35 to 1 with opacity, Easing.out(Easing.exp)",
+        "purpose": "A postmark pressing down onto a payment or group the moment it is cancelled."
+      },
+      {
+        "name": "postmark-land-reduced",
+        "value": "200ms opacity crossfade, no scale",
+        "purpose": "Postmark arrival under Reduce Motion."
+      },
+      {
+        "name": "press",
+        "value": "opacity 0.7 (buttons), 0.5 (links, icon buttons), fill background (rows)",
+        "purpose": "Immediate pressed feedback; no animated transitions on controls."
+      }
+    ],
+    "sizes": {
+      "hitMin": "44px",
+      "buttonH": "52px",
+      "buttonSmH": "40px",
+      "fieldH": "48px",
+      "rowMin": "52px",
+      "stamp-sm": "22x26",
+      "stamp-md": "30x36",
+      "stamp-lg": "52x62"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink slab for the screen's main action (Add Expense, Save).",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Add Expense</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:52px; padding:0 20px; border:none; border-radius:14px; background:#16181D; color:#FFFFFF; font:600 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-btn-primary:hover { opacity:0.85; } .ds-btn-primary:active { opacity:0.7; } .ds-btn-primary:focus-visible { outline:2px solid #16181D; outline-offset:3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ink-outlined action (Settle Up, Copy as Text).",
+      "html": "<button class=\"ds-btn-secondary\">Settle Up</button>",
+      "css": ".ds-btn-secondary { min-height:52px; padding:0 20px; border:1.5px solid #16181D; border-radius:14px; background:transparent; color:#16181D; font:600 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-btn-secondary:hover { background:#ECEDF0; } .ds-btn-secondary:active { opacity:0.7; } .ds-btn-secondary:focus-visible { outline:2px solid #16181D; outline-offset:3px; }"
+    },
+    {
+      "name": "Small Pill Button",
+      "kind": "button",
+      "refersTo": "button-small",
+      "description": "40-tall ink pill for inline actions (Share).",
+      "html": "<button class=\"ds-btn-sm\">Share</button>",
+      "css": ".ds-btn-sm { min-height:40px; padding:0 14px; border:none; border-radius:999px; background:#16181D; color:#FFFFFF; font:600 15px/20px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-btn-sm:active { opacity:0.7; } .ds-btn-sm:focus-visible { outline:2px solid #16181D; outline-offset:3px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive confirmation (Delete Account).",
+      "html": "<button class=\"ds-btn-danger\">Delete Account</button>",
+      "css": ".ds-btn-danger { min-height:52px; padding:0 20px; border:none; border-radius:14px; background:#C8302F; color:#FFFFFF; font:600 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-btn-danger:active { opacity:0.7; } .ds-btn-danger:focus-visible { outline:2px solid #C8302F; outline-offset:3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Filled field, no border until focus (ink) or error (danger).",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Description</span><input class=\"ds-field-input\" placeholder=\"Dinner, taxi, groceries\"></label>",
+      "css": ".ds-field { display:flex; flex-direction:column; width:300px; } .ds-field-label { font:500 13px/18px -apple-system, 'SF Pro Text', system-ui, sans-serif; color:#5E626C; margin:0 0 6px 2px; } .ds-field-input { min-height:48px; padding:12px 14px; border:1.5px solid transparent; border-radius:10px; background:#F4F5F7; color:#16181D; font:400 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; outline:none; } .ds-field-input::placeholder { color:#8E929B; } .ds-field-input:focus, .ds-field-input:focus-visible { border-color:#16181D; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "nav",
+      "refersTo": "segmented-control",
+      "description": "Expenses | Balances switch under the nav bar.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button class=\"ds-seg-item\">Expenses</button><button class=\"ds-seg-item ds-seg-on\">Balances</button></div>",
+      "css": ".ds-seg { display:flex; width:340px; padding:2px; border-radius:9px; background:#ECEDF0; } .ds-seg-item { flex:1; min-height:32px; border:none; border-radius:7px; background:transparent; color:#5E626C; font:500 14px/18px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-seg-item:hover { color:#16181D; } .ds-seg-on { background:#FFFFFF; color:#16181D; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,0.12); } .ds-seg-item:focus-visible { outline:2px solid #16181D; outline-offset:1px; }"
+    },
+    {
+      "name": "Balance Row",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "Plain list row: stamp, name, diverging balance bar, signed amount in the money column.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-stamp\" style=\"background:#B8306A\">C</span><span class=\"ds-row-name\">You</span><span class=\"ds-bar\"><span class=\"ds-bar-axis\"></span><span class=\"ds-bar-fill\" style=\"left:50%;width:40%;background:#B8306A\"></span></span><span class=\"ds-amt\" style=\"color:#14824F\">+$43.20</span></div><div class=\"ds-rule\"></div><div class=\"ds-row\"><span class=\"ds-stamp\" style=\"background:#2B4BD8\">A</span><span class=\"ds-row-name\">Alice</span><span class=\"ds-bar\"><span class=\"ds-bar-axis\"></span><span class=\"ds-bar-fill\" style=\"right:50%;width:40%;background:#2B4BD8\"></span></span><span class=\"ds-amt\" style=\"color:#B4372A\">−$43.20</span></div>",
+      "css": ".ds-row { display:flex; align-items:center; gap:12px; min-height:52px; padding:10px 16px; width:360px; background:#FFFFFF; color:#16181D; font:400 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; } .ds-row:hover { background:#ECEDF0; } .ds-rule { height:1px; margin-left:16px; background:#C9CBD1; transform:scaleY(0.5); } .ds-stamp { width:30px; height:36px; display:inline-flex; align-items:center; justify-content:center; color:#FFFFFF; font:800 14px/1 'Archivo', sans-serif; outline:1px solid rgba(255,255,255,0.5); outline-offset:-4px; -webkit-mask: radial-gradient(circle 1.5px at 3px 3px, transparent 98%, #000) -3px -3px/5px 5px; } .ds-row-name { width:84px; } .ds-bar { position:relative; flex:1; height:8px; } .ds-bar-axis { position:absolute; left:50%; top:-3px; width:1px; height:14px; background:#C9CBD1; } .ds-bar-fill { position:absolute; top:0; bottom:0; border-radius:2px; } .ds-amt { min-width:76px; text-align:right; font:600 19px/24px 'Archivo Narrow', 'Arial Narrow', sans-serif; font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "Postmark",
+      "kind": "custom",
+      "refersTo": "postmark",
+      "description": "Circular date cancellation in postmark blue with killer waves; lands on a settled group or paid payment.",
+      "html": "<svg class=\"ds-postmark\" width=\"244\" height=\"116\" viewBox=\"0 0 210 100\"><defs><path id=\"ds-pm-r\" d=\"M50 50 m-35 0 a35 35 0 1 1 70 0 a35 35 0 1 1 -70 0\"/></defs><g opacity=\"0.92\" fill=\"none\" stroke=\"#34408A\" stroke-linecap=\"round\"><path stroke-width=\"2.2\" d=\"M96 34 q7 -5 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0\"/><path stroke-width=\"2.2\" d=\"M96 44 q7 -5 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0\"/><path stroke-width=\"2.2\" d=\"M96 54 q7 -5 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0\"/><path stroke-width=\"2.2\" d=\"M96 64 q7 -5 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0\"/><circle cx=\"50\" cy=\"50\" r=\"46\" stroke-width=\"2.6\"/><circle cx=\"50\" cy=\"50\" r=\"27\" stroke-width=\"1.5\"/></g><g opacity=\"0.92\" fill=\"#34408A\" font-family=\"Archivo, sans-serif\"><text font-size=\"9.5\" font-weight=\"700\" letter-spacing=\"2.2\"><textPath href=\"#ds-pm-r\">TOKYO TRIP · TOKYO TRIP · </textPath></text><text x=\"50\" y=\"49\" text-anchor=\"middle\" font-size=\"10.5\" font-weight=\"800\">SETTLED</text><text x=\"50\" y=\"62\" text-anchor=\"middle\" font-size=\"8.5\" font-weight=\"700\">2 NOV 26</text></g></svg>",
+      "css": ".ds-postmark { transform: rotate(-8deg); animation: ds-pm-land 320ms cubic-bezier(0.16, 1, 0.3, 1) both; } @keyframes ds-pm-land { from { opacity: 0; transform: rotate(-8deg) scale(1.35); } to { opacity: 1; transform: rotate(-8deg) scale(1); } } @media (prefers-reduced-motion: reduce) { .ds-postmark { animation: ds-pm-fade 200ms ease-out both; } @keyframes ds-pm-fade { from { opacity: 0; } to { opacity: 1; } } }"
+    },
+    {
+      "name": "Dialog",
+      "kind": "card",
+      "refersTo": "dialog",
+      "description": "Centred floating alert; the only card-like surface, and it floats.",
+      "html": "<div class=\"ds-dialog\"><div class=\"ds-dialog-title\">Mark as paid?</div><div class=\"ds-dialog-msg\">Alice paid you <b>$43.20</b>. This can't be undone.</div><div class=\"ds-dialog-btns\"><button class=\"ds-dialog-b2\">Cancel</button><button class=\"ds-dialog-b1\">Mark as Paid</button></div></div>",
+      "css": ".ds-dialog { width:300px; padding:22px 20px 18px; border-radius:16px; background:#FFFFFF; box-shadow:0 12px 24px rgba(0,0,0,0.18); display:flex; flex-direction:column; gap:8px; } .ds-dialog-title { font:600 18px/23px -apple-system, 'SF Pro Text', system-ui, sans-serif; color:#16181D; } .ds-dialog-msg { font:400 15px/21px -apple-system, 'SF Pro Text', system-ui, sans-serif; color:#5E626C; } .ds-dialog-msg b { font:700 15px/21px 'Archivo Narrow', 'Arial Narrow', sans-serif; color:#16181D; } .ds-dialog-btns { display:flex; gap:10px; margin-top:14px; } .ds-dialog-btns button { flex:1; min-height:52px; border-radius:14px; font:600 17px/22px -apple-system, 'SF Pro Text', system-ui, sans-serif; cursor:pointer; } .ds-dialog-b1 { border:none; background:#16181D; color:#FFFFFF; } .ds-dialog-b2 { border:1.5px solid #16181D; background:transparent; color:#16181D; } .ds-dialog-btns button:active { opacity:0.7; } .ds-dialog-btns button:focus-visible { outline:2px solid #16181D; outline-offset:3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Postmark",
+    "overview": "Every member of a group is a postage stamp, and every finished payment is cancelled with a postmark. The app is a white card (near-black in dark mode) on which ink-black type and controls do all the work; the only colour comes from two places: the stamps that identify people, and the blue-violet postmark ink that marks something done. The story the system tells is the life of a group: stamps gather, balances show their length, payments get cancelled one by one, until the group itself is postmarked \"Settled\".\n\nThe world refuses the category default of a grey list with one accent colour and the dark-fintech look (near-black, single neon accent, tracked mono labels, everything boxed in cards). Hierarchy comes from scale, not boxes: one large ink amount per screen, compact rows on the page ground with inset hairlines, one right-hand money column. It is a native iOS app first: native-shaped navigation bar, segmented control, page sheets, SF Pro with Dynamic Type, every colour a light/dark pair that follows the system appearance.",
+    "keyCharacteristics": [
+      "Ink is the interactive colour; there is no accent tint.",
+      "Stamp colour is identity only, assigned per person.",
+      "No card containers: plain lists with inset hairlines; inset grouped lists only in Settings.",
+      "One large Archivo Narrow amount per screen; all money in tabular figures on a single right column.",
+      "The postmark is the system's only celebratory device, and it lands with a press-down."
+    ],
+    "rules": [
+      {
+        "name": "The Ink Is The Accent Rule",
+        "body": "Every control is ink on white or white on ink. No coloured buttons, no tinted links; if something needs to be tapped, it is ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stamp Is Identity Rule",
+        "body": "A stamp colour belongs to one person in a group. It may fill their stamp and their balance bar; it never decorates a button, header, chart or background.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Big Number Rule",
+        "body": "Each screen has at most one amount set in amount-hero ink: your balance in the group, your overall position, or the amount being entered. Everything else ranks below it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "Section headers, day labels and captions are sentence-case SF Pro. Uppercase appears only inside the postmark's own lettering and on the invite code, which is a code, not a label.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "All money is Archivo Narrow with tabular figures so columns of cents line up.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Boxes Rule",
+        "body": "Content sits on the page ground as plain lists with hairlines inset to the text column. The inset grouped list (`Group`, surface grey, 12 radius) is for settings-shaped content only, and Settings is where it lives.",
+        "section": "layout"
+      },
+      {
+        "name": "The Only Floaters Cast Rule",
+        "body": "If it does not float above the screen, it has no shadow. Rows, fields, buttons and sections are flat.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Earned Postmark Rule",
+        "body": "A postmark appears only on something that is actually finished: a paid payment or a settled group. It is never decoration, an empty-state ornament or a badge for anything else.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** make every control ink: primary buttons ink-filled, secondary ink-outlined (1.5), links ink text.",
+      "**Do** colour a person only through their stamp and balance bar, using `assignStampColors` so they keep the same colour across groups.",
+      "**Do** set all money in Archivo Narrow with tabular figures, in one right-hand column, and give each screen at most one amount-hero number.",
+      "**Do** leave UI text on the system font (no `fontFamily`) so Dynamic Type and CJK fallback work.",
+      "**Do** define new colours as `DynamicColorIOS` light/dark pairs in `theme.ts`, and resolve them with `useResolve()` for SVG.",
+      "**Do** use cancel lines when the row text already says \"paid\"; use the full postmark when the mark is the message.",
+      "**Do** keep tap targets at least 44×44."
+    ],
+    "donts": [
+      "**Don't** use tracked uppercase mono labels or eyebrows above titles; section headers are sentence case.",
+      "**Don't** introduce an accent-coloured button or tinted link; ink is the interactive colour.",
+      "**Don't** use gradients or glows.",
+      "**Don't** box content in cards; use plain lists with inset hairlines, and keep inset grouped lists to Settings.",
+      "**Don't** put shadows on anything that does not float.",
+      "**Don't** use a stamp colour, or postmark blue, as decoration."
+    ]
+  }
+}
