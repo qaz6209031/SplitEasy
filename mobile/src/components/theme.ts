@@ -47,6 +47,8 @@ export const colors = {
   dangerTint: dyn('#FDEDEC', '#2A1415'),
   /** Postmark ink. */
   cancel: dyn('#34408A', '#9DA8F2'),
+  /** Selected text in keypad fields, tinted from the postmark ink. */
+  selection: dyn('#D3D9F6', '#2F3870'),
   white: '#FFFFFF',
   scrim: 'rgba(0,0,0,0.4)',
 };

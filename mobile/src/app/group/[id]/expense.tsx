@@ -1,8 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue } from 'react-native';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { AmountKeypad } from '@/components/AmountKeypad';
 import { useDialog } from '@/components/Dialog';
 import { Icon } from '@/components/Icon';
 import { Stamp } from '@/components/postal';
@@ -10,6 +12,7 @@ import { assignStampColors, colors, fonts, radius, space, type } from '@/compone
 import { Button, LinkButton, List, NavBar, Row, SegmentedControl, T2, TextField } from '@/components/ui';
 import * as repo from '@/data/repository';
 import type { Profile } from '@/data/types';
+import { applyKey, evaluateCents, hasOperator, spaced, type CalcKey } from '@/domain/calc';
 import { editableString, formatCents, parseCents } from '@/domain/money';
 import { computeSplit, formatHundredths, initialInputs, inputsFromShares, type SplitMethod, type SplitResult } from '@/domain/splits';
 import { userMessage } from '@/lib/supabase';
@@ -21,9 +24,13 @@ const METHODS: { method: SplitMethod; label: string }[] = [
   { method: 'shares', label: 'Shares' },
 ];
 
+/** A money field being typed on the keypad: the total, or one person's amount ("Amounts" split). */
+type Editing = { field: 'total' | string; expr: string; fresh: boolean };
+
 /**
  * Add or edit an expense. Amount first, big and centred; one payer; split equally among the ticked
- * people, or by exact amounts, percentages or shares.
+ * people, or by exact amounts, percentages or shares. Money is typed on the app's own keypad, which
+ * also adds, subtracts, multiplies and divides.
  */
 export default function ExpenseFormScreen() {
   const { id: groupId, expenseId } = useLocalSearchParams<{ id: string; expenseId?: string }>();
@@ -41,7 +48,12 @@ export default function ExpenseFormScreen() {
   /** What's typed per person for each of the other methods, kept while switching between them. */
   const [inputs, setInputs] = useState<Partial<Record<SplitMethod, Record<string, string>>>>({});
   const [saving, setSaving] = useState(false);
-  const [amountW, setAmountW] = useState(120);
+  /** A new expense opens on the total with the keypad up. */
+  const [editing, setEditing] = useState<Editing | null>(isEditing ? null : { field: 'total', expr: '', fresh: false });
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const scrollY = useRef(0);
+  const viewH = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +101,7 @@ export default function ExpenseFormScreen() {
   /** Switching methods starts from the people already on the expense, split evenly. */
   function switchMethod(next: SplitMethod) {
     if (next === method) return;
+    if (editing && editing.field !== 'total') closeEditor();
     const current = split.shares.map((s) => s.userId);
     const included = current.length > 0 ? current : memberIds;
     if (next === 'equal') setParticipants(new Set(included));
@@ -99,6 +112,61 @@ export default function ExpenseFormScreen() {
   function setInput(id: string, text: string) {
     setInputs((all) => ({ ...all, [method]: { ...all[method], [id]: text } }));
   }
+
+  /** Puts the keypad away, settling the field on its value written out to the cent ("5" → "5.00"). */
+  function closeEditor() {
+    if (!editing) return;
+    const cents = evaluateCents(editing.expr);
+    if (cents != null) {
+      if (editing.field === 'total') setAmountText(editableString(cents));
+      else setInput(editing.field, editableString(cents));
+    }
+    setEditing(null);
+  }
+
+  /** Opens a money field on the keypad with its value selected: a digit replaces it, an operator continues it. */
+  function openField(field: string, current: string, row?: View | null) {
+    Keyboard.dismiss();
+    if (editing && editing.field !== field) closeEditor();
+    const expr = /^\d*\.?\d*$/.test(current) ? current : '';
+    setEditing({ field, expr, fresh: expr !== '' });
+    if (row) setTimeout(() => revealRow(row), 80);
+  }
+
+  /** Scrolls a split row clear of the keypad once the keypad has taken its space. */
+  function revealRow(row: View) {
+    const content = contentRef.current;
+    if (!content) return;
+    row.measureLayout(content, (_x, y, _w, h) => {
+      // Leave room for the split status line under the rows.
+      const bottom = y + h + 64;
+      if (bottom > scrollY.current + viewH.current) scrollRef.current?.scrollTo({ y: bottom - viewH.current, animated: true });
+    });
+  }
+
+  /** The field's value follows the keypad as you type: what you typed, or the sum once there's arithmetic. */
+  function commit(field: string, expr: string) {
+    const cents = evaluateCents(expr);
+    const text = hasOperator(expr) && cents != null ? editableString(cents) : expr;
+    if (field === 'total') setAmountText(text);
+    else setInput(field, text);
+  }
+
+  function press(key: CalcKey) {
+    if (!editing) return;
+    const expr = applyKey(editing.expr, key, editing.fresh);
+    setEditing({ ...editing, expr, fresh: false });
+    commit(editing.field, expr);
+  }
+
+  function clearField() {
+    if (!editing) return;
+    setEditing({ ...editing, expr: '', fresh: false });
+    commit(editing.field, '');
+  }
+
+  const editingResult = editing && hasOperator(editing.expr) ? evaluateCents(editing.expr) : null;
+  const keypadResult = editing && hasOperator(editing.expr) ? (editingResult != null ? `= ${formatCents(editingResult)}` : '= —') : null;
 
   async function save() {
     if (!valid || saving || amountCents == null || paidBy == null) return;
@@ -159,44 +227,43 @@ export default function ExpenseFormScreen() {
           <ActivityIndicator color={colors.ink} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+          onLayout={(e) => (viewH.current = e.nativeEvent.layout.height)}
+        >
+          <View ref={contentRef} collapsable={false} style={styles.body}>
           <View style={styles.hero}>
-            <View style={styles.amountRow}>
+            <Pressable
+              onPress={() => openField('total', amountText)}
+              style={styles.amountRow}
+              accessibilityRole="button"
+              accessibilityLabel="Amount"
+              accessibilityValue={{ text: amountCents != null ? formatCents(amountCents) : 'empty' }}
+              accessibilityHint="Opens the keypad"
+              accessibilityState={{ selected: editing?.field === 'total' }}
+            >
               <Text style={styles.dollar}>$</Text>
-              <View>
-                {/* Sizes the input to its text, so "$" + amount stays centred as you type. The measuring box
-                    is wide and unrelated to the input's width, so the text is measured unwrapped. */}
-                <View style={styles.measureBox} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  <Text
-                    style={[styles.amountInput, styles.measure]}
-                    numberOfLines={1}
-                    onLayout={(e) => setAmountW(Math.ceil(e.nativeEvent.layout.width) + 4)}
-                  >
-                    {amountText || '0.00'}
-                  </Text>
-                </View>
-                <TextInput
-                  value={amountText}
-                  onChangeText={setAmountText}
-                  placeholder="0.00"
-                  placeholderTextColor={colors.ink3}
-                  keyboardType="decimal-pad"
-                  selectionColor={colors.ink}
-                  autoFocus={!isEditing}
-                  style={[styles.amountInput, { width: amountW }, amountInvalid && { color: colors.danger }]}
-                  accessibilityLabel="Amount"
-                />
-              </View>
-            </View>
-            {amountInvalid ? (
-              <T2 style={styles.amountError}>Enter an amount greater than $0, with up to 2 decimal places (e.g. 12.50).</T2>
-            ) : null}
+              <KeypadValue
+                text={editing?.field === 'total' ? spaced(editing.expr) : amountText}
+                placeholder="0.00"
+                active={editing?.field === 'total'}
+                fresh={editing?.field === 'total' && editing.fresh}
+                invalid={amountInvalid && editing?.field !== 'total'}
+                style={styles.amountText}
+                caretHeight={56}
+              />
+            </Pressable>
+            {amountInvalid && editing?.field !== 'total' ? <T2 style={styles.amountError}>Enter an amount greater than $0.</T2> : null}
           </View>
 
           <TextField
             label="Description"
             value={description}
             onChangeText={setDescription}
+            onFocus={closeEditor}
             placeholder="Description, e.g. Dinner"
             autoCapitalize="sentences"
           />
@@ -262,6 +329,9 @@ export default function ExpenseFormScreen() {
                     value={methodInputs?.[member.id] ?? ''}
                     onChange={(text) => setInput(member.id, text)}
                     amountCents={amountCents ? shareOf(member.id)?.amountCents : undefined}
+                    editing={editing?.field === member.id ? editing : null}
+                    onOpen={(row) => openField(member.id, methodInputs?.[member.id] ?? '', row)}
+                    onFocusText={closeEditor}
                   />
                 ),
               )}
@@ -270,8 +340,12 @@ export default function ExpenseFormScreen() {
           </FormSection>
 
           {isEditing ? <Button title="Delete Expense" icon="trash" variant="dangerOutline" onPress={confirmDelete} /> : null}
+          </View>
         </ScrollView>
       )}
+      {members != null && editing ? (
+        <AmountKeypad onKey={press} onClear={clearField} onDone={closeEditor} result={keypadResult} />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -295,6 +369,9 @@ function SplitInputRow({
   value,
   onChange,
   amountCents,
+  editing,
+  onOpen,
+  onFocusText,
 }: {
   stamp: ReactNode;
   name: string;
@@ -302,9 +379,47 @@ function SplitInputRow({
   value: string;
   onChange: (text: string) => void;
   amountCents: number | undefined;
+  /** Set while this row's amount is on the keypad. */
+  editing: Editing | null;
+  /** Amounts are typed on the keypad. */
+  onOpen: (row: View | null) => void;
+  /** Percentages and shares use the system number pad. */
+  onFocusText: () => void;
 }) {
   const unit = method === 'exact' ? 'amount' : method === 'percent' ? 'percent' : 'shares';
   const [focused, setFocused] = useState(false);
+  const rowRef = useRef<View>(null);
+  if (method === 'exact') {
+    return (
+      <Row minHeight={64} style={{ paddingHorizontal: 0 }}>
+        {stamp}
+        <Text style={[type.body, { flex: 1, color: colors.ink }]} numberOfLines={1}>
+          {name}
+        </Text>
+        <Pressable
+          ref={rowRef}
+          onPress={() => onOpen(rowRef.current)}
+          accessibilityRole="button"
+          accessibilityLabel={`${name}, ${unit}`}
+          accessibilityValue={{ text: value ? `$${value}` : 'empty' }}
+          accessibilityHint="Opens the keypad"
+          accessibilityState={{ selected: !!editing }}
+          style={[styles.splitInput, editing && { borderColor: colors.ink }]}
+        >
+          <Text style={styles.splitAffix}>$</Text>
+          <KeypadValue
+            text={editing ? spaced(editing.expr) : value}
+            placeholder="0.00"
+            active={!!editing}
+            fresh={!!editing?.fresh}
+            style={styles.splitValue}
+            caretHeight={20}
+            align="right"
+          />
+        </Pressable>
+      </Row>
+    );
+  }
   return (
     <Row minHeight={64} style={{ paddingHorizontal: 0 }}>
       {stamp}
@@ -312,19 +427,21 @@ function SplitInputRow({
         <Text style={[type.body, { color: colors.ink }]} numberOfLines={1}>
           {name}
         </Text>
-        {method !== 'exact' ? <Text style={[type.amountSm, { color: colors.ink2 }]}>{amountCents != null ? formatCents(amountCents) : '—'}</Text> : null}
+        <Text style={[type.amountSm, { color: colors.ink2 }]}>{amountCents != null ? formatCents(amountCents) : '—'}</Text>
       </View>
       <View style={[styles.splitInput, focused && { borderColor: colors.ink }]}>
-        {method === 'exact' ? <Text style={styles.splitAffix}>$</Text> : null}
         <TextInput
           value={value}
           onChangeText={onChange}
-          placeholder={method === 'exact' ? '0.00' : '0'}
+          placeholder="0"
           placeholderTextColor={colors.ink3}
           keyboardType="decimal-pad"
           selectionColor={colors.ink}
           selectTextOnFocus
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            onFocusText();
+          }}
           onBlur={() => setFocused(false)}
           style={styles.splitText}
           accessibilityLabel={`${name}, ${unit}`}
@@ -334,6 +451,63 @@ function SplitInputRow({
       </View>
     </Row>
   );
+}
+
+/**
+ * What a keypad field shows: the typed entry with a blinking caret, the value selected when the field
+ * has just opened, or a placeholder. Long entries shrink to fit rather than wrap.
+ */
+function KeypadValue({
+  text,
+  placeholder,
+  active,
+  fresh,
+  invalid,
+  style,
+  caretHeight,
+  align = 'center',
+}: {
+  text: string;
+  placeholder: string;
+  active: boolean;
+  fresh: boolean;
+  invalid?: boolean;
+  style: object;
+  caretHeight: number;
+  align?: 'center' | 'right';
+}) {
+  const empty = text === '';
+  return (
+    <View style={[styles.valueRow, align === 'right' && { flex: 1, justifyContent: 'flex-end' }]}>
+      <Text
+        style={[
+          style,
+          empty && { color: colors.ink3 },
+          invalid && { color: colors.danger },
+          fresh && !empty && styles.selected,
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.4}
+      >
+        {empty ? placeholder : text}
+      </Text>
+      {/* Keyed to the text so the caret stays solid while you type, as the system caret does. */}
+      {active && !fresh ? <Caret key={text} height={caretHeight} /> : null}
+    </View>
+  );
+}
+
+function Caret({ height }: { height: number }) {
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    if (reduceMotion) return;
+    opacity.value = withRepeat(withSequence(withTiming(1, { duration: 500 }), withTiming(0, { duration: 0 }), withTiming(0, { duration: 500 }), withTiming(1, { duration: 0 })), -1);
+    return () => cancelAnimation(opacity);
+  }, [reduceMotion, opacity]);
+  const animated = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[{ width: 2, height, borderRadius: 1, backgroundColor: colors.ink, marginLeft: 2 }, animated]} />;
 }
 
 /** "$12.00 left", "10% over", "Adds up to 100%": whether the split is complete. */
@@ -387,11 +561,12 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space.m, paddingTop: 4, paddingBottom: 40, gap: space.l },
   hero: { alignItems: 'center', paddingTop: space.m, paddingBottom: space.xs },
-  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 72, maxWidth: '100%' },
   dollar: { fontFamily: fonts.money, fontSize: 36, color: colors.ink2, marginTop: 6 },
-  amountInput: { ...type.amountHero, fontSize: 64, lineHeight: 72, height: 72, color: colors.ink, maxWidth: 300, padding: 0, textAlign: 'center' },
-  measureBox: { position: 'absolute', top: 0, left: 0, width: 1000, opacity: 0, alignItems: 'flex-start' },
-  measure: { width: undefined, maxWidth: undefined },
+  amountText: { ...type.amountHero, fontSize: 64, lineHeight: 72, color: colors.ink, flexShrink: 1 },
+  valueRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  /** The opened field's value, shown selected: the next digit replaces it. */
+  selected: { backgroundColor: colors.selection, borderRadius: 6, overflow: 'hidden' },
   amountError: { color: colors.danger, textAlign: 'center', marginTop: 6, marginHorizontal: space.xs },
   formHeading: { ...type.headline, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
@@ -422,5 +597,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   splitAffix: { fontFamily: fonts.money, fontSize: 16, color: colors.ink2 },
+  splitValue: { fontFamily: fonts.money, fontSize: 18, lineHeight: 22, color: colors.ink, fontVariant: ['tabular-nums'], flexShrink: 1 },
   splitText: { flex: 1, fontFamily: fonts.money, fontSize: 18, color: colors.ink, textAlign: 'right', padding: 0, fontVariant: ['tabular-nums'] },
 });
