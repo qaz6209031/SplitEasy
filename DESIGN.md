@@ -298,6 +298,7 @@ Tactile and plain: ink slabs with no ornament.
 - **Style:** grouped-grey fill, no visible border at rest, 10 radius, 48 tall, 17 text, footnote label above in ink 2.
 - **Focus:** a 1.5 ink border. **Error:** a 1.5 danger border; form errors use the error note (danger tint, 10 radius, danger title over ink message).
 - **Amount input:** the expense screen's amount is the screen's one big number (Archivo Narrow 700, 64/72) with a muted Archivo Narrow dollar sign.
+- **Amount keypad:** money on the expense screen (the total and per-person "Amounts") is typed on the app's own keypad, never the system number pad, so a bill can be added up or divided where it's entered. It docks under the form on a surface tray with a hairline: a 44 bar (the "= $62.50" result in Archivo Narrow ink 2 once there's arithmetic, "Done" on the right), then a 4×4 grid of 48-tall, 10-radius keys with 6 gaps: digits on page-ground keys, the point, delete and the narrower operator column (÷ × − +) on track grey. Holding delete clears. The field shows the typed expression with a 2pt ink caret that blinks (steady under Reduce Motion); an opened field shows its value on the `selection` tint (pale postmark blue), and the next digit replaces it while an operator continues it. Closing the keypad writes the value out to the cent.
 
 ### Lists and rows
 - **Plain list:** rows on the page ground, strong-rule hairlines inset to the text column. Pressed rows fill with track grey.
