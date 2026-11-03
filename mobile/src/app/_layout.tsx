@@ -1,30 +1,33 @@
-import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, useFonts } from '@expo-google-fonts/geist';
-import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
-import { DarkTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
+import { Archivo_600SemiBold, Archivo_800ExtraBold, useFonts } from '@expo-google-fonts/archivo';
+import { ArchivoNarrow_600SemiBold, ArchivoNarrow_700Bold } from '@expo-google-fonts/archivo-narrow';
+import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { DialogProvider } from '@/components/Dialog';
-import { colors } from '@/components/theme';
+import { colors, useResolve } from '@/components/theme';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useForegroundUpdateCheck } from '@/lib/updates';
 
 SplashScreen.preventAutoHideAsync();
 
-const theme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, primary: colors.accent, background: colors.bg, card: colors.bg, border: colors.hairline },
-};
-
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Geist_400Regular,
-    Geist_500Medium,
-    Geist_600SemiBold,
-    GeistMono_500Medium,
+    Archivo_600SemiBold,
+    Archivo_800ExtraBold,
+    ArchivoNarrow_600SemiBold,
+    ArchivoNarrow_700Bold,
   });
+  const scheme = useColorScheme();
+  const resolve = useResolve();
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const theme = {
+    ...base,
+    colors: { ...base.colors, primary: resolve(colors.ink), background: resolve(colors.bg), card: resolve(colors.bg), text: resolve(colors.ink), border: resolve(colors.rule) },
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -34,7 +37,7 @@ export default function RootLayout() {
             {/* Fonts ship inside the JS bundle, so they also update over the air. */}
             {fontsLoaded || fontError ? <RootNavigator /> : null}
             <UpdateBanner />
-            <StatusBar style="light" />
+            <StatusBar style="auto" />
           </AuthProvider>
         </DialogProvider>
       </ThemeProvider>
@@ -57,7 +60,7 @@ function RootNavigator() {
   const needsName = signedIn && profile != null && !profile.display_name;
 
   return (
-    // Screens draw their own navigation bars (custom NavBar) to match the design.
+    // Screens draw their own navigation bars (NavBar) so titles and actions sit in one ink system.
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
@@ -75,8 +78,8 @@ function RootNavigator() {
             presentation: 'formSheet',
             sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
-            contentStyle: { backgroundColor: colors.surface },
+            sheetCornerRadius: 16,
+            contentStyle: { backgroundColor: colors.bg },
           }}
         />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />

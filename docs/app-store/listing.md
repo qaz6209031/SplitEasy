@@ -27,10 +27,12 @@ Sign in with Apple or Google. No ads, no tracking. Delete your account any time 
 Amounts are in US dollars.
 
 ## Screenshots
-`screenshots/` holds 6.9" iPhone shots (1320×2868, iPhone 18 Pro Max simulator), which App Store Connect scales down for smaller iPhones. Upload them in order:
-1. `01-groups.png`: groups with balances and a settled badge
+`screenshots/` holds 6.9" iPhone shots (1320×2868, iPhone 18 Pro Max simulator, dark appearance). `screenshots/6.3-inch/` holds the same shots scaled to 1206×2622, which App Store Connect asks for first.
+
+`screenshots/listing/` (and `listing/6.3-inch/`) holds the images actually uploaded to the store: the same shots inside the illustrated frames (headline, phone, characters). They were made by compositing the raw shots into the live listing images, keeping the characters in front. Upload them in order:
+1. `01-groups.png`: groups with balances; the settled group's stamps are cancelled
 2. `02-expenses.png`: a trip's expenses
 3. `03-add-expense.png`: adding an expense, split equally
 4. `04-balances.png`: who owes whom
 5. `05-settle-up.png`: settling up with the fewest payments
-6. `06-settled.png`: all settled up
+6. `06-settled.png`: all settled up, with the Settled postmark

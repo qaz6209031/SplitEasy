@@ -5,9 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEV_USERS, GoogleNotConfiguredError, useAuth } from '@/auth/AuthProvider';
 import { useDialog } from '@/components/Dialog';
-import { DotGrid } from '@/components/DotGrid';
 import { Icon } from '@/components/Icon';
-import { colors, fonts, radius, space, type } from '@/components/theme';
+import { Postmark, postmarkDate, Stamp } from '@/components/postal';
+import { colors, radius, space, stampColor, type } from '@/components/theme';
 import { Button } from '@/components/ui';
 import { userMessage } from '@/lib/supabase';
 
@@ -36,15 +36,17 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DotGrid />
       <View style={styles.hero}>
-        <View style={styles.mark}>
-          <Icon name="logo" size={48} />
+        <View style={styles.mark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Stamp name="Y" color={stampColor(0)} size="lg" style={{ transform: [{ rotate: '-7deg' }, { translateY: 8 }] }} />
+          <Stamp name="A" color={stampColor(1)} size="lg" style={{ transform: [{ rotate: '3deg' }], marginLeft: -8 }} />
+          <Stamp name="B" color={stampColor(2)} size="lg" style={{ transform: [{ rotate: '-2deg' }, { translateY: 6 }], marginLeft: -8 }} />
+          <Postmark word="Settled" date={postmarkDate(new Date().toISOString())} size={92} style={styles.markPostmark} />
         </View>
         <Text style={styles.title} accessibilityRole="header">
           Tabmates
         </Text>
-        <Text style={styles.tagline}>Share expenses with friends. Settle up with the fewest payments.</Text>
+        <Text style={styles.tagline}>Track what the group spends. Settle up once at the end, with the fewest payments.</Text>
       </View>
 
       <View style={styles.buttons}>
@@ -56,7 +58,7 @@ export default function SignInScreen() {
           disabled={!!busy}
           accessibilityRole="button"
           accessibilityLabel="Sign in with Google"
-          style={({ pressed }) => [styles.google, pressed && { transform: [{ scale: 0.98 }], opacity: 0.85 }]}
+          style={({ pressed }) => [styles.google, pressed && { opacity: 0.7 }]}
         >
           <Icon name="google" size={20} />
           <Text style={styles.googleText}>Sign in with Google</Text>
@@ -71,7 +73,7 @@ export default function SignInScreen() {
                   key={name}
                   onPress={() => run(name, () => devSignIn(name))}
                   accessibilityRole="button"
-                  style={({ pressed }) => [styles.chip, pressed && { backgroundColor: colors.raised }]}
+                  style={({ pressed }) => [styles.chip, pressed && { backgroundColor: colors.fill }]}
                 >
                   <Text style={styles.chipText}>{name}</Text>
                 </Pressable>
@@ -86,19 +88,11 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, paddingHorizontal: space.xl },
-  mark: {
-    width: 80,
-    height: 80,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { ...type.largeTitle, color: colors.text, marginTop: space.xs },
-  tagline: { ...type.body, color: colors.textMuted, textAlign: 'center', maxWidth: 280, lineHeight: 25 },
+  hero: { flex: 1, justifyContent: 'center', gap: space.m, paddingHorizontal: 28 },
+  mark: { flexDirection: 'row', alignItems: 'flex-start', height: 96, marginBottom: space.m },
+  markPostmark: { position: 'absolute', left: 120, top: 2 },
+  title: { ...type.largeTitle, fontSize: 44, lineHeight: 50, letterSpacing: -1.2, color: colors.ink },
+  tagline: { ...type.body, fontSize: 19, lineHeight: 26, color: colors.ink2, maxWidth: 320 },
   buttons: { paddingHorizontal: 20, paddingBottom: space.m, gap: space.s },
   google: {
     minHeight: 52,
@@ -107,22 +101,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.xs,
-    backgroundColor: colors.raised,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.ink,
   },
-  googleText: { fontFamily: fonts.semibold, fontSize: 17, color: colors.text, letterSpacing: -0.2 },
-  dev: { opacity: 0.45, alignItems: 'center', gap: 10, marginTop: 14 },
-  devLabel: { ...type.label, fontSize: 12, color: colors.textMuted },
+  googleText: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  dev: { opacity: 0.6, alignItems: 'center', gap: 10, marginTop: 14 },
+  devLabel: { ...type.footnote, color: colors.ink2 },
   chip: {
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: space.m,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipText: { fontFamily: fonts.medium, fontSize: 15, color: colors.text },
+  chipText: { ...type.subhead, color: colors.ink },
 });

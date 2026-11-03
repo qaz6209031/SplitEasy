@@ -1,18 +1,18 @@
 // Styled confirm / alert dialogs from the design, replacing the system Alert.
 //   const dialog = useDialog();
-//   if (await dialog.confirm({ title: 'Settle up now?', confirmTitle: 'Settle Up', tone: 'amber' })) …
+//   if (await dialog.confirm({ title: 'Delete "Ramen"?', confirmTitle: 'Delete', tone: 'red' })) …
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, floatShadow, fonts, radius, space } from './theme';
+import { colors, floatShadow, fonts, radius, space, type } from './theme';
 import { Button } from './ui';
 
-type Tone = 'primary' | 'amber' | 'red';
+type Tone = 'primary' | 'red';
 
 interface DialogOptions {
   title: string;
   message?: string;
-  /** A part of `message` (e.g. an amount) shown in mono, white. */
+  /** A part of `message` (e.g. an amount) set in the money face. */
   highlight?: string;
   /** Omit for a single-button alert. */
   cancelTitle?: string;
@@ -72,7 +72,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 ) : null}
                 <Button
                   title={current.confirmTitle ?? 'OK'}
-                  variant={current.tone === 'amber' ? 'amber' : current.tone === 'red' ? 'red' : current.cancelTitle ? 'primary' : 'secondary'}
+                  variant={current.tone === 'red' ? 'danger' : 'primary'}
                   size="sm"
                   onPress={() => close(true)}
                   style={{ flex: 1 }}
@@ -109,18 +109,16 @@ const styles = StyleSheet.create({
   alert: {
     width: 300,
     maxWidth: '100%',
-    backgroundColor: colors.raised,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.alert,
+    backgroundColor: colors.bg,
+    borderRadius: radius.sheet,
     paddingTop: 22,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 18,
     gap: space.xs,
     ...floatShadow,
   },
-  title: { fontFamily: fonts.semibold, fontSize: 19, lineHeight: 25, letterSpacing: -0.4, color: colors.text },
-  message: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, color: colors.textSoft },
-  highlight: { fontFamily: fonts.mono, color: colors.text },
+  title: { ...type.headline, fontSize: 18, lineHeight: 23, color: colors.ink },
+  message: { ...type.subhead, lineHeight: 21, color: colors.ink2 },
+  highlight: { fontFamily: fonts.moneyBold, color: colors.ink },
   buttons: { flexDirection: 'row', gap: 10, marginTop: 14 },
 });

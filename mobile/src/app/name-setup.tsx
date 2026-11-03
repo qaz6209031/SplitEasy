@@ -33,12 +33,9 @@ export default function NameSetupScreen() {
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: insets.bottom }}>
       <NavBar left={<LinkButton title="Sign Out" onPress={signOut} />} />
       <View style={styles.body}>
-        <View style={{ gap: space.xs }}>
-          <Text style={styles.eyebrow}>Step 1 of 1</Text>
-          <Text style={styles.title} accessibilityRole="header">
-            What&apos;s your name?
-          </Text>
-        </View>
+        <Text style={styles.title} accessibilityRole="header">
+          What&apos;s your name?
+        </Text>
         <View>
           <TextField
             label="Name"
@@ -63,6 +60,5 @@ export default function NameSetupScreen() {
 
 const styles = StyleSheet.create({
   body: { flex: 1, paddingTop: space.l, paddingHorizontal: 20, gap: 28 },
-  eyebrow: { ...type.label, color: colors.textMuted },
-  title: { ...type.largeTitle, fontSize: 28, lineHeight: 32, color: colors.text },
+  title: { ...type.largeTitle, fontSize: 30, lineHeight: 36, color: colors.ink },
 });
