@@ -30,6 +30,7 @@ import { paymentKey, type Payment } from '@/domain/debts';
 import { formatCents } from '@/domain/money';
 import { groupSummaryText } from '@/domain/summary';
 import { useGroupDetail } from '@/features/useGroupDetail';
+import { requestReviewAfterSettling } from '@/lib/reviewPrompt';
 
 type Tab = 'expenses' | 'balances';
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { dateStyle: 'medium' });
@@ -84,6 +85,11 @@ export function GroupDetail({
   if (loaded && seenSettlements == null) setSeenSettlements(new Set(settlements.map((s) => s.id)));
   const [initialStatus, setInitialStatus] = useState<Group['status'] | null>(null);
   if (group && initialStatus == null) setInitialStatus(group.status);
+  // Settling up here is the happy ending of a trip: a good moment to ask for a rating.
+  const settledHere = initialStatus != null && initialStatus !== 'settled' && group?.status === 'settled';
+  useEffect(() => {
+    if (settledHere) requestReviewAfterSettling();
+  }, [settledHere]);
 
   const shareText = group ? `Join my group "${group.name}" on Tabmates with invite code ${group.invite_code}` : '';
   const share = () => Share.share({ message: shareText });
