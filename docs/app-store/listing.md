@@ -1,6 +1,6 @@
 # App Store listing draft
 
-- **Name:** Tabmates
+- **Name:** Tabmates: Group Trip Expenses
 - **Subtitle** (≤30): `Split trip costs, settle once` (29)
 - **Category:** Finance (secondary: Travel)
 - **Age rating:** 4+ (no objectionable content; no unrestricted web access)
