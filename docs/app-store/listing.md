@@ -36,3 +36,11 @@ Amounts are in US dollars.
 4. `04-balances.png`: who owes whom
 5. `05-settle-up.png`: settling up with the fewest payments
 6. `06-settled.png`: all settled up, with the Settled postmark
+
+### iPad and iPhone Duo (reference, not for upload)
+Raw simulator shots from testing the adaptive layout (dev account data, dark appearance, no frames). They show what the screens look like; store images still need the illustrated frames.
+
+- `ipad-13-inch/`: iPad Pro 13-inch (M5), 2064×2752 portrait and 2752×2064 landscape, which is the 13" iPad size App Store Connect asks for. From 800pt wide the groups list and the open group sit side by side; the group's content is capped at 720pt.
+- `iphone-duo/`: iPhone Duo folded (cover display, 1398×2034) and open (inner display, 2853×2007 wide, plus rotated "tall"). Open shows the same two panes.
+
+Retaken 2026-11-03 from `main` at 8806680 (aligned group tabs and Add Expense button, Rate Tabmates in Settings). `01-sign-in-portrait.png` is from the earlier round; the sign-in screen hasn't changed since. The Settings shots show 1.0.1 (2) because they come from a local debug build.
