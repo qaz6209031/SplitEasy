@@ -8,11 +8,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { DialogProvider } from '@/components/Dialog';
+import { ScreenColumn } from '@/components/ScreenColumn';
 import { colors, useResolve } from '@/components/theme';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useForegroundUpdateCheck } from '@/lib/updates';
 
 SplashScreen.preventAutoHideAsync();
+
+/** Sheets size to their content, so they keep their own layout. */
+const SHEETS = new Set(['new-group']);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -61,7 +65,12 @@ function RootNavigator() {
 
   return (
     // Screens draw their own navigation bars (NavBar) so titles and actions sit in one ink system.
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}
+      screenLayout={({ route, children }) =>
+        SHEETS.has(route.name) ? children : <ScreenColumn split={route.name === 'index'}>{children}</ScreenColumn>
+      }
+    >
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>

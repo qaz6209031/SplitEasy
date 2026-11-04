@@ -1,5 +1,5 @@
 // Component kit for the Postmark world: ink controls on a white card ground, no boxed sections.
-import { Children, Fragment, useState, type ReactNode } from 'react';
+import { Children, Fragment, useState, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -121,9 +121,23 @@ export function LinkButton({
 }
 
 /** Bare 44pt icon button for navigation bars. */
-export function IconButton({ icon, onPress, label, size = 24 }: { icon: IconName; onPress: () => void; label: string; size?: number }) {
+export function IconButton({
+  icon,
+  onPress,
+  label,
+  size = 24,
+  ref,
+}: {
+  icon: IconName;
+  onPress: () => void;
+  label: string;
+  size?: number;
+  /** For anchoring a popover (an action sheet on a wide screen) to the button. */
+  ref?: Ref<View>;
+}) {
   return (
     <Pressable
+      ref={ref}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}

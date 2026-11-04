@@ -1,27 +1,35 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActionSheetIOS, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActionSheetIOS, Alert, findNodeHandle, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { useDialog } from '@/components/Dialog';
 import { Icon } from '@/components/Icon';
 import { CancelLines, Stamp } from '@/components/postal';
+import { useSplitView } from '@/components/ScreenColumn';
 import { assignStampColors, colors, space, stampColor, type } from '@/components/theme';
 import { BalanceLabel, Button, IconButton, StatusLine, T2, styles as ui } from '@/components/ui';
 import { fetchGroups, fetchMembersByGroup, fetchMyBalances } from '@/data/repository';
 import type { Group, Profile } from '@/data/types';
 import { formatCents } from '@/domain/money';
+import { GroupDetail } from '@/features/GroupDetail';
 import { userMessage } from '@/lib/supabase';
 
 const openSheet = (mode: 'create' | 'join') => router.push({ pathname: '/new-group', params: { mode } });
 
-/** The system action sheet for "+": create a group or join one. */
-function showAddMenu() {
+/**
+ * The system action sheet for "+": create a group or join one. On a wide screen (iPhone Duo open,
+ * iPad) it becomes a popover, so it points at the button.
+ */
+function showAddMenu(anchor: View | null) {
   const options = ['Create Group', 'Join with Code'] as const;
   const pick = (i: number) => (i === 0 ? openSheet('create') : i === 1 ? openSheet('join') : undefined);
   if (Platform.OS === 'ios') {
-    ActionSheetIOS.showActionSheetWithOptions({ options: [...options, 'Cancel'], cancelButtonIndex: 2 }, pick);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...options, 'Cancel'], cancelButtonIndex: 2, anchor: (anchor && findNodeHandle(anchor)) || undefined },
+      pick,
+    );
   } else {
     Alert.alert('Add a group', undefined, [
       { text: options[0], onPress: () => pick(0) },
@@ -35,11 +43,15 @@ export default function GroupsScreen() {
   const { userId } = useAuth();
   const dialog = useDialog();
   const insets = useSafeAreaInsets();
+  const plusRef = useRef<View>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [balances, setBalances] = useState(new Map<string, number>());
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [members, setMembers] = useState(new Map<string, Profile[]>());
+  // On a wide screen (iPhone Duo open, iPad) the list keeps a group open beside it instead of pushing one.
+  const split = useSplitView();
+  const [picked, setPicked] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -63,12 +75,14 @@ export default function GroupsScreen() {
   );
 
   const total = groups.reduce((sum, g) => sum + (balances.get(g.id) ?? 0), 0);
+  // The open group: the one picked, else the first, so the right pane is never blank.
+  const open = split ? (groups.find((g) => g.id === picked) ?? groups[0] ?? null) : null;
 
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+  const list = (
+    <>
       <View style={[styles.nav, { marginTop: insets.top }]}>
         <IconButton icon="user" label="Settings" onPress={() => router.push('/settings')} />
-        <IconButton icon="plus" label="Add group" size={26} onPress={showAddMenu} />
+        <IconButton ref={plusRef} icon="plus" label="Add group" size={26} onPress={() => showAddMenu(plusRef.current)} />
       </View>
 
       <FlatList
@@ -95,7 +109,15 @@ export default function GroupsScreen() {
           </View>
         }
         ItemSeparatorComponent={() => <View style={[ui.hairline, { marginLeft: 102 }]} />}
-        renderItem={({ item }) => <GroupRow group={item} balance={balances.get(item.id) ?? 0} members={members.get(item.id) ?? []} />}
+        renderItem={({ item }) => (
+          <GroupRow
+            group={item}
+            balance={balances.get(item.id) ?? 0}
+            members={members.get(item.id) ?? []}
+            selected={open?.id === item.id}
+            onPress={open ? () => setPicked(item.id) : undefined}
+          />
+        )}
         ListEmptyComponent={
           loaded ? (
             <View style={styles.empty}>
@@ -114,7 +136,20 @@ export default function GroupsScreen() {
           ) : null
         }
       />
+    </>
+  );
 
+  if (!open) {
+    // One pane. With no groups yet on a wide screen, the empty state keeps the usual column width.
+    return <View style={[{ flex: 1, backgroundColor: colors.bg }, split && styles.narrow]}>{list}</View>;
+  }
+  return (
+    <View style={styles.panes}>
+      <View style={styles.listPane}>{list}</View>
+      <View style={styles.paneRule} />
+      <View style={{ flex: 1 }}>
+        <GroupDetail key={open.id} id={open.id} initialName={open.name} embedded onChange={load} />
+      </View>
     </View>
   );
 }
@@ -152,7 +187,21 @@ function StampRun({ members, settled }: { members: Profile[]; settled: boolean }
   );
 }
 
-function GroupRow({ group, balance, members }: { group: Group; balance: number; members: Profile[] }) {
+function GroupRow({
+  group,
+  balance,
+  members,
+  selected,
+  onPress,
+}: {
+  group: Group;
+  balance: number;
+  members: Profile[];
+  /** The group open in the pane beside the list. */
+  selected: boolean;
+  /** Given in two panes, where a tap opens the group beside the list rather than pushing it. */
+  onPress?: () => void;
+}) {
   const settled = group.status === 'settled';
   const label = [
     group.name,
@@ -163,10 +212,11 @@ function GroupRow({ group, balance, members }: { group: Group; balance: number; 
     .join(', ');
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/group/[id]', params: { id: group.id, name: group.name } })}
+      onPress={onPress ?? (() => router.push({ pathname: '/group/[id]', params: { id: group.id, name: group.name } }))}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [ui.row, { minHeight: 68, paddingRight: 10 }, pressed && { backgroundColor: colors.fill }]}
+      accessibilityState={onPress ? { selected } : undefined}
+      style={({ pressed }) => [ui.row, { minHeight: 68, paddingRight: onPress ? space.m : 10 }, (pressed || selected) && { backgroundColor: colors.fill }]}
     >
       <StampRun members={members} settled={settled} />
       <View style={{ flex: 1, gap: 3, alignItems: 'flex-start' }}>
@@ -176,7 +226,7 @@ function GroupRow({ group, balance, members }: { group: Group; balance: number; 
         {group.status !== 'active' ? <StatusLine status={settled ? 'settled' : 'settling'} /> : null}
       </View>
       {settled && balance === 0 ? null : <BalanceLabel cents={balance} />}
-      <Icon name="chev-r" size={18} color={colors.ink3} />
+      {onPress ? null : <Icon name="chev-r" size={18} color={colors.ink3} />}
     </Pressable>
   );
 }
@@ -191,4 +241,8 @@ const styles = StyleSheet.create({
   emptyTitle: { ...type.title, color: colors.ink },
   run: { width: 74, height: 44, flexDirection: 'row', alignItems: 'center' },
   more: { ...type.footnote, fontWeight: '600', color: colors.ink2, marginLeft: 4 },
+  panes: { flex: 1, flexDirection: 'row', backgroundColor: colors.bg },
+  listPane: { width: 360 },
+  paneRule: { width: StyleSheet.hairlineWidth, backgroundColor: colors.strongRule },
+  narrow: { width: '100%', maxWidth: 640, alignSelf: 'center' },
 });

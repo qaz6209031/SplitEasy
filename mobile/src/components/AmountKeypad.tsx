@@ -1,11 +1,12 @@
 // The expense screen's own keypad: digits, a point, delete and the four operators, so a bill can be
 // added up ("38.50 + 12") or divided ("120 ÷ 3") right where it's entered. It docks under the form.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import type { CalcKey } from '@/domain/calc';
 
+import { useColumnBleed } from './ScreenColumn';
 import { colors, fonts, space, type, useResolve } from './theme';
 import { LinkButton } from './ui';
 
@@ -39,17 +40,32 @@ export function AmountKeypad({
   result: string | null;
 }) {
   const insets = useSafeAreaInsets();
+  // The tray runs to the screen's edges even when the page sits in a narrower column; the keys stay in it.
+  const bleed = useColumnBleed();
+  // A short window (iPhone Duo open in landscape, Split View) gets shorter keys, so the form keeps room.
+  const short = useWindowDimensions().height < 760;
   return (
-    <View style={[styles.tray, { paddingBottom: Math.max(insets.bottom, space.xs) }]}>
+    <View
+      style={[
+        styles.tray,
+        {
+          paddingBottom: Math.max(insets.bottom, space.xs),
+          marginLeft: -bleed.left,
+          marginRight: -bleed.right,
+          paddingLeft: bleed.left,
+          paddingRight: bleed.right,
+        },
+      ]}
+    >
       <View style={styles.bar}>
         <Text style={styles.result} numberOfLines={1} accessibilityLiveRegion="polite">
           {result ?? ''}
         </Text>
         <LinkButton title="Done" bold onPress={onDone} />
       </View>
-      <View style={styles.grid}>
+      <View style={[styles.grid, short && styles.gridShort]}>
         {ROWS.map((row, r) => (
-          <View key={r} style={styles.row}>
+          <View key={r} style={[styles.row, short && styles.gridShort]}>
             {row.map((key, c) => {
               const operator = key === '+' || key === '−' || key === '×' || key === '÷';
               const quiet = operator || key === 'del';
@@ -63,6 +79,7 @@ export function AmountKeypad({
                   accessibilityHint={key === 'del' ? 'Hold to clear' : undefined}
                   style={({ pressed }) => [
                     styles.key,
+                    short && styles.keyShort,
                     c === 3 && styles.keyNarrow,
                     quiet ? styles.keyQuiet : styles.keyDigit,
                     pressed && { backgroundColor: quiet ? colors.strongRule : colors.fill },
@@ -109,6 +126,8 @@ const styles = StyleSheet.create({
   grid: { paddingHorizontal: 6, gap: 6 },
   row: { flexDirection: 'row', gap: 6 },
   key: { flex: 1, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  keyShort: { height: 38 },
+  gridShort: { gap: 4 },
   keyNarrow: { flex: 0.8 },
   keyDigit: { backgroundColor: colors.bg },
   keyQuiet: { backgroundColor: colors.fill },
