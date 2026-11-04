@@ -32,7 +32,7 @@ Amounts are in US dollars.
 `screenshots/listing/` (and `listing/6.3-inch/`) holds the images actually uploaded to the store: the same shots inside the illustrated frames (headline, phone, characters). They were made by compositing the raw shots into the live listing images, keeping the characters in front. Upload them in order:
 1. `01-groups.png`: groups with balances; the settled group's stamps are cancelled
 2. `02-expenses.png`: a trip's expenses
-3. `03-add-expense.png`: adding an expense, split equally
+3. `03-add-expense.png`: adding an expense on the calculator keypad (12.5 + 5.5 = $18.00), split equally
 4. `04-balances.png`: who owes whom
 5. `05-settle-up.png`: settling up with the fewest payments
 6. `06-settled.png`: all settled up, with the Settled postmark

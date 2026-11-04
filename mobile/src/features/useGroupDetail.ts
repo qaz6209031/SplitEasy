@@ -9,7 +9,8 @@ import { simplifyDebts, type Payment } from '@/domain/debts';
 import { userMessage } from '@/lib/supabase';
 
 /** Loads one group (members, expenses, payments) and exposes the settle-up actions. */
-export function useGroupDetail(groupId: string) {
+/** `onChange` hears about every saved action, so a groups list shown alongside can refresh its balances. */
+export function useGroupDetail(groupId: string, onChange?: () => void) {
   const dialog = useDialog();
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Profile[]>([]);
@@ -56,6 +57,7 @@ export function useGroupDetail(groupId: string) {
     } finally {
       if (trackStatus) setUpdatingStatus(false);
       await load();
+      onChange?.();
     }
   }
 
