@@ -13,7 +13,7 @@ import { Button, LinkButton, List, NavBar, Row, SegmentedControl, T2, TextField 
 import * as repo from '@/data/repository';
 import type { Profile } from '@/data/types';
 import { applyKey, evaluateCents, hasOperator, spaced, type CalcKey } from '@/domain/calc';
-import { editableString, formatCents, parseCents } from '@/domain/money';
+import { currencyOf, editableString, formatMoney, parseCents, stepOf, USD, type Currency } from '@/domain/money';
 import { computeSplit, formatHundredths, initialInputs, inputsFromShares, type SplitMethod, type SplitResult } from '@/domain/splits';
 import { userMessage } from '@/lib/supabase';
 
@@ -39,6 +39,10 @@ export default function ExpenseFormScreen() {
   const isEditing = !!expenseId;
 
   const [members, setMembers] = useState<Profile[] | null>(null);
+  /** The group's currency: every amount on this screen is in it. */
+  const [currency, setCurrency] = useState<Currency>(USD);
+  const step = stepOf(currency);
+  const formatCents = (cents: number) => formatMoney(cents, currency);
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
   const [paidBy, setPaidBy] = useState<string | null>(userId);
@@ -58,20 +62,23 @@ export default function ExpenseFormScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [m, expenses] = await Promise.all([
+        const [group, m, expenses] = await Promise.all([
+          repo.fetchGroup(groupId),
           repo.fetchMembers(groupId),
           isEditing ? repo.fetchExpenses(groupId) : Promise.resolve([]),
         ]);
+        const groupCurrency = currencyOf(group.currency);
+        setCurrency(groupCurrency);
         setMembers(m);
         const existing = expenses.find((e) => e.id === expenseId);
         if (existing) {
           setDescription(existing.description);
-          setAmountText(editableString(existing.amount_cents));
+          setAmountText(editableString(existing.amount_cents, groupCurrency));
           setPaidBy(existing.paid_by);
           setParticipants(new Set(existing.splits.map((s) => s.user_id)));
           setMethod(existing.split_method);
           if (existing.split_method !== 'equal') {
-            setInputs({ [existing.split_method]: inputsFromShares(existing.split_method, existing.splits) });
+            setInputs({ [existing.split_method]: inputsFromShares(existing.split_method, existing.splits, groupCurrency) });
           }
         } else {
           setParticipants(new Set(m.map((p) => p.id)));
@@ -83,14 +90,14 @@ export default function ExpenseFormScreen() {
     })();
   }, [groupId, expenseId, isEditing, dialog]);
 
-  const amountCents = parseCents(amountText);
+  const amountCents = parseCents(amountText, currency);
   const amountInvalid = amountText.length > 0 && amountCents == null;
   // Member order decides who gets leftover cents, so the preview matches what's saved.
   const memberIds = useMemo(() => (members ?? []).map((m) => m.id), [members]);
   const methodInputs = inputs[method];
   const split = useMemo(
-    () => computeSplit(method, amountCents, memberIds, participants, methodInputs ?? {}),
-    [method, amountCents, memberIds, participants, methodInputs],
+    () => computeSplit(method, amountCents, memberIds, participants, methodInputs ?? {}, currency),
+    [method, amountCents, memberIds, participants, methodInputs, currency],
   );
   const shareOf = (id: string) => split.shares.find((s) => s.userId === id);
   const noneSelected = members != null && method === 'equal' && participants.size === 0;
@@ -105,7 +112,7 @@ export default function ExpenseFormScreen() {
     const current = split.shares.map((s) => s.userId);
     const included = current.length > 0 ? current : memberIds;
     if (next === 'equal') setParticipants(new Set(included));
-    else if (!inputs[next]) setInputs((all) => ({ ...all, [next]: initialInputs(next, amountCents, included) }));
+    else if (!inputs[next]) setInputs((all) => ({ ...all, [next]: initialInputs(next, amountCents, included, currency) }));
     setMethod(next);
   }
 
@@ -116,10 +123,10 @@ export default function ExpenseFormScreen() {
   /** Puts the keypad away, settling the field on its value written out to the cent ("5" → "5.00"). */
   function closeEditor() {
     if (!editing) return;
-    const cents = evaluateCents(editing.expr);
+    const cents = evaluateCents(editing.expr, step);
     if (cents != null) {
-      if (editing.field === 'total') setAmountText(editableString(cents));
-      else setInput(editing.field, editableString(cents));
+      if (editing.field === 'total') setAmountText(editableString(cents, currency));
+      else setInput(editing.field, editableString(cents, currency));
     }
     setEditing(null);
   }
@@ -146,8 +153,8 @@ export default function ExpenseFormScreen() {
 
   /** The field's value follows the keypad as you type: what you typed, or the sum once there's arithmetic. */
   function commit(field: string, expr: string) {
-    const cents = evaluateCents(expr);
-    const text = hasOperator(expr) && cents != null ? editableString(cents) : expr;
+    const cents = evaluateCents(expr, step);
+    const text = hasOperator(expr) && cents != null ? editableString(cents, currency) : expr;
     if (field === 'total') setAmountText(text);
     else setInput(field, text);
   }
@@ -165,7 +172,7 @@ export default function ExpenseFormScreen() {
     commit(editing.field, '');
   }
 
-  const editingResult = editing && hasOperator(editing.expr) ? evaluateCents(editing.expr) : null;
+  const editingResult = editing && hasOperator(editing.expr) ? evaluateCents(editing.expr, step) : null;
   const keypadResult = editing && hasOperator(editing.expr) ? (editingResult != null ? `= ${formatCents(editingResult)}` : '= —') : null;
 
   async function save() {
@@ -245,10 +252,10 @@ export default function ExpenseFormScreen() {
               accessibilityHint="Opens the keypad"
               accessibilityState={{ selected: editing?.field === 'total' }}
             >
-              <Text style={styles.dollar}>$</Text>
+              <Text style={styles.dollar}>{currency.symbol}</Text>
               <KeypadValue
                 text={editing?.field === 'total' ? spaced(editing.expr) : amountText}
-                placeholder="0.00"
+                placeholder={editableString(0, currency)}
                 active={editing?.field === 'total'}
                 fresh={editing?.field === 'total' && editing.fresh}
                 invalid={amountInvalid && editing?.field !== 'total'}
@@ -256,7 +263,9 @@ export default function ExpenseFormScreen() {
                 caretHeight={56}
               />
             </Pressable>
-            {amountInvalid && editing?.field !== 'total' ? <T2 style={styles.amountError}>Enter an amount greater than $0.</T2> : null}
+            {amountInvalid && editing?.field !== 'total' ? <T2 style={styles.amountError}>
+                {currency.decimals === 0 ? `Enter a whole amount greater than ${currency.symbol}0.` : `Enter an amount greater than ${currency.symbol}0.`}
+              </T2> : null}
           </View>
 
           <TextField
@@ -326,6 +335,7 @@ export default function ExpenseFormScreen() {
                     stamp={<Stamp name={member.display_name || '?'} color={stampColors.get(member.id) ?? '#8E929B'} />}
                     name={displayName(member)}
                     method={method}
+                    currency={currency}
                     value={methodInputs?.[member.id] ?? ''}
                     onChange={(text) => setInput(member.id, text)}
                     amountCents={amountCents ? shareOf(member.id)?.amountCents : undefined}
@@ -336,7 +346,7 @@ export default function ExpenseFormScreen() {
                 ),
               )}
             </List>
-            <SplitStatus split={split} method={method} amountCents={amountCents} noneSelected={noneSelected} />
+            <SplitStatus split={split} method={method} currency={currency} amountCents={amountCents} noneSelected={noneSelected} />
           </FormSection>
 
           {isEditing ? <Button title="Delete Expense" icon="trash" variant="dangerOutline" onPress={confirmDelete} /> : null}
@@ -344,7 +354,7 @@ export default function ExpenseFormScreen() {
         </ScrollView>
       )}
       {members != null && editing ? (
-        <AmountKeypad onKey={press} onClear={clearField} onDone={closeEditor} result={keypadResult} />
+        <AmountKeypad onKey={press} onClear={clearField} onDone={closeEditor} result={keypadResult} decimals={currency.decimals > 0} />
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -366,6 +376,7 @@ function SplitInputRow({
   stamp,
   name,
   method,
+  currency,
   value,
   onChange,
   amountCents,
@@ -376,6 +387,7 @@ function SplitInputRow({
   stamp: ReactNode;
   name: string;
   method: SplitMethod;
+  currency: Currency;
   value: string;
   onChange: (text: string) => void;
   amountCents: number | undefined;
@@ -401,15 +413,15 @@ function SplitInputRow({
           onPress={() => onOpen(rowRef.current)}
           accessibilityRole="button"
           accessibilityLabel={`${name}, ${unit}`}
-          accessibilityValue={{ text: value ? `$${value}` : 'empty' }}
+          accessibilityValue={{ text: value ? `${currency.symbol}${value}` : 'empty' }}
           accessibilityHint="Opens the keypad"
           accessibilityState={{ selected: !!editing }}
           style={[styles.splitInput, editing && { borderColor: colors.ink }]}
         >
-          <Text style={styles.splitAffix}>$</Text>
+          <Text style={styles.splitAffix}>{currency.symbol}</Text>
           <KeypadValue
             text={editing ? spaced(editing.expr) : value}
-            placeholder="0.00"
+            placeholder={editableString(0, currency)}
             active={!!editing}
             fresh={!!editing?.fresh}
             style={styles.splitValue}
@@ -427,7 +439,7 @@ function SplitInputRow({
         <Text style={[type.body, { color: colors.ink }]} numberOfLines={1}>
           {name}
         </Text>
-        <Text style={[type.amountSm, { color: colors.ink2 }]}>{amountCents != null ? formatCents(amountCents) : '—'}</Text>
+        <Text style={[type.amountSm, { color: colors.ink2 }]}>{amountCents != null ? formatMoney(amountCents, currency) : '—'}</Text>
       </View>
       <View style={[styles.splitInput, focused && { borderColor: colors.ink }]}>
         <TextInput
@@ -514,14 +526,18 @@ function Caret({ height }: { height: number }) {
 function SplitStatus({
   split,
   method,
+  currency,
   amountCents,
   noneSelected,
 }: {
   split: SplitResult;
   method: SplitMethod;
+  currency: Currency;
   amountCents: number | null;
   noneSelected: boolean;
 }) {
+  const formatCents = (cents: number) => formatMoney(cents, currency);
+  const step = stepOf(currency);
   let text: string | null = null;
   let color: ColorValue = colors.ink2;
   const show = (r: number) => (method === 'exact' ? formatCents(r) : `${formatHundredths(r)}%`);
@@ -529,12 +545,16 @@ function SplitStatus({
     if (noneSelected) [text, color] = ['Pick at least one person.', colors.danger];
     else {
       const n = split.shares.length;
-      const low = amountCents && n > 0 ? Math.floor(amountCents / n) : 0;
-      const each = !amountCents || n === 0 ? '' : amountCents % n ? ` · ${formatCents(low)}–${formatCents(low + 1)} each` : ` · ${formatCents(low)} each`;
+      // In a whole-unit currency the shares are whole units, so the range is a unit wide.
+      const unit = amountCents && amountCents % step === 0 ? step : 1;
+      const low = amountCents && n > 0 ? Math.floor(amountCents / unit / n) * unit : 0;
+      const each =
+        !amountCents || n === 0 ? '' : (amountCents / unit) % n ? ` · ${formatCents(low)}–${formatCents(low + unit)} each` : ` · ${formatCents(low)} each`;
       text = `Split between ${n} ${n === 1 ? 'person' : 'people'}${each}`;
     }
   } else if (split.invalid) {
-    [text, color] = ['Use numbers with up to 2 decimal places.', colors.danger];
+    const whole = method === 'exact' && currency.decimals === 0;
+    [text, color] = [whole ? 'Use whole amounts, without decimals.' : 'Use numbers with up to 2 decimal places.', colors.danger];
   } else if (split.shares.length === 0) {
     text = method === 'shares' ? 'Give at least one person a share.' : 'Enter at least one person.';
   } else if (method === 'shares') {

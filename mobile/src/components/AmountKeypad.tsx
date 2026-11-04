@@ -1,5 +1,6 @@
 // The expense screen's own keypad: digits, a point, delete and the four operators, so a bill can be
 // added up ("38.50 + 12") or divided ("120 ÷ 3") right where it's entered. It docks under the form.
+// A currency without decimals (NT$) gets a "00" key where the point would be.
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -19,6 +20,7 @@ const ROWS: CalcKey[][] = [
 
 const LABELS: Partial<Record<CalcKey, string>> = {
   '.': 'Decimal point',
+  '00': 'Double zero',
   del: 'Delete',
   '+': 'Plus',
   '−': 'Minus',
@@ -31,6 +33,7 @@ export function AmountKeypad({
   onClear,
   onDone,
   result,
+  decimals = true,
 }: {
   onKey: (key: CalcKey) => void;
   /** Long-pressing delete clears the field. */
@@ -38,6 +41,8 @@ export function AmountKeypad({
   onDone: () => void;
   /** "= $20.50" once the entry has arithmetic in it. */
   result: string | null;
+  /** False for a currency that's only ever whole units: the point key becomes "00". */
+  decimals?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   // The tray runs to the screen's edges even when the page sits in a narrower column; the keys stay in it.
@@ -66,7 +71,8 @@ export function AmountKeypad({
       <View style={[styles.grid, short && styles.gridShort]}>
         {ROWS.map((row, r) => (
           <View key={r} style={[styles.row, short && styles.gridShort]}>
-            {row.map((key, c) => {
+            {row.map((cap, c) => {
+              const key: CalcKey = cap === '.' && !decimals ? '00' : cap;
               const operator = key === '+' || key === '−' || key === '×' || key === '÷';
               const quiet = operator || key === 'del';
               return (

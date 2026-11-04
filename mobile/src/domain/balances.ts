@@ -15,10 +15,15 @@ export function netBalances(expenses: Expense[], settlements: Settlement[]): Map
   return balances;
 }
 
-/** Equal split used for previews in the expense form; mirrors `save_expense` in the database. */
-export function equalSplit(amountCents: number, count: number): number[] {
+/**
+ * Equal split: leftover cents go to the first people, as `save_expense` in the database does. With
+ * a `step` of 100 (a whole-unit currency) the shares are whole units and the leftover units go first.
+ */
+export function equalSplit(amountCents: number, count: number, step = 1): number[] {
   if (count <= 0) return [];
-  const base = Math.floor(amountCents / count);
-  const remainder = amountCents - base * count;
-  return Array.from({ length: count }, (_, i) => base + (i < remainder ? 1 : 0));
+  if (amountCents % step !== 0) step = 1;
+  const units = amountCents / step;
+  const base = Math.floor(units / count);
+  const remainder = units - base * count;
+  return Array.from({ length: count }, (_, i) => (base + (i < remainder ? 1 : 0)) * step);
 }

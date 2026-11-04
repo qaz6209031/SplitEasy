@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { formatCents } from '@/domain/money';
+import { formatMoney, type Currency } from '@/domain/money';
 import { Icon, type IconName } from './Icon';
 import { colors, radius, sizes, space, type } from './theme';
 
@@ -274,19 +274,21 @@ export function T2({ children, style, numberOfLines }: { children: ReactNode; st
 
 export function Amount({
   cents,
+  currency,
   color = colors.ink,
   signed,
   small,
   style,
 }: {
   cents: number;
+  currency: Currency;
   color?: ColorValue;
   signed?: boolean;
   small?: boolean;
   style?: StyleProp<TextStyle>;
 }) {
   const sign = signed && cents !== 0 ? (cents > 0 ? '+' : '−') : '';
-  return <Text style={[small ? type.amountSm : type.amount, { color }, style]}>{sign + formatCents(Math.abs(cents))}</Text>;
+  return <Text style={[small ? type.amountSm : type.amount, { color }, style]}>{sign + formatMoney(Math.abs(cents), currency)}</Text>;
 }
 
 /** "Settling up" / "Settled" as a dot and a word, in the state's colour. */
@@ -310,13 +312,13 @@ export function Checkbox({ checked, error }: { checked: boolean; error?: boolean
 }
 
 /** "you're owed $x" / "you owe $x" / "all square", right-aligned. */
-export function BalanceLabel({ cents }: { cents: number }) {
+export function BalanceLabel({ cents, currency }: { cents: number; currency: Currency }) {
   if (cents === 0) return <T2>all square</T2>;
   const owed = cents > 0;
   return (
     <View style={{ alignItems: 'flex-end' }}>
       <Text style={styles.balanceCaption}>{owed ? 'you’re owed' : 'you owe'}</Text>
-      <Amount cents={Math.abs(cents)} color={owed ? colors.pos : colors.neg} />
+      <Amount cents={Math.abs(cents)} currency={currency} color={owed ? colors.pos : colors.neg} />
     </View>
   );
 }

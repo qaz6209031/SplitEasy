@@ -27,7 +27,7 @@ import {
 } from '@/components/ui';
 import { isLocked, type Expense, type Group } from '@/data/types';
 import { paymentKey, type Payment } from '@/domain/debts';
-import { formatCents } from '@/domain/money';
+import { currencyOf, formatMoney, type Currency } from '@/domain/money';
 import { groupSummaryText } from '@/domain/summary';
 import { useGroupDetail } from '@/features/useGroupDetail';
 import { requestReviewAfterSettling } from '@/lib/reviewPrompt';
@@ -68,6 +68,8 @@ export function GroupDetail({
   const scrollRef = useRef<ScrollView>(null);
   const locked = group ? isLocked(group) : false;
   const tab: Tab | null = chosenTab ?? (group ? (locked ? 'balances' : 'expenses') : null);
+  const currency = currencyOf(group?.currency);
+  const formatCents = (cents: number) => formatMoney(cents, currency);
   const [scrolled, setScrolled] = useState(false);
 
   const name = (personId: string) =>
@@ -230,11 +232,12 @@ export function GroupDetail({
                   <Text style={styles.dayLabel} accessibilityRole="header">
                     {day.label}
                   </Text>
-                  <Amount cents={day.total} small color={colors.ink2} />
+                  <Amount cents={day.total} currency={currency} small color={colors.ink2} />
                 </View>
                 <List inset={58}>
                   {day.items.map((expense) => (
                     <ExpenseRow
+                      currency={currency}
                       key={expense.id}
                       expense={expense}
                       payerName={name(expense.paid_by)}
@@ -261,7 +264,7 @@ export function GroupDetail({
                 onReopen={confirmReopen}
               />
             ) : (
-              <MyBalance cents={myBalance} />
+              <MyBalance cents={myBalance} currency={currency} />
             )}
 
             {group?.status === 'settling' ? (
@@ -287,7 +290,7 @@ export function GroupDetail({
                             accessibilityLabel={`Mark as paid: ${name(payment.from)} pays ${objectName(payment.to)} ${formatCents(payment.amountCents)}`}
                           />
                         </View>
-                        <Amount cents={payment.amountCents} style={[styles.moneyColumn, { marginTop: 1 }]} />
+                        <Amount cents={payment.amountCents} currency={currency} style={[styles.moneyColumn, { marginTop: 1 }]} />
                       </Row>
                     ))}
                     {settlements.map((s) => paidRow(s))}
@@ -321,6 +324,7 @@ export function GroupDetail({
                           <BalanceBar cents={cents} max={maxAbs} color={colorOf(member.id)} />
                           <Amount
                             cents={cents}
+                            currency={currency}
                             signed
                             color={cents > 0 ? colors.pos : cents < 0 ? colors.neg : colors.ink3}
                             style={styles.moneyColumn}
@@ -399,7 +403,7 @@ export function GroupDetail({
           </T1>
           <Text style={styles.payer}>{formatDate(s.created_at)}</Text>
         </View>
-        <Amount cents={s.amount_cents} color={colors.ink2} style={styles.moneyColumn} />
+        <Amount cents={s.amount_cents} currency={currency} color={colors.ink2} style={styles.moneyColumn} />
       </Row>
     );
   }
@@ -448,13 +452,13 @@ function StampPair({
 }
 
 /** Your position in this group: the one large number on the Balances tab. */
-function MyBalance({ cents }: { cents: number }) {
+function MyBalance({ cents, currency }: { cents: number; currency: Currency }) {
   const owed = cents > 0;
   return (
     <View style={{ paddingHorizontal: space.m, paddingTop: space.xs }} accessible>
       <T2>{cents === 0 ? 'You’re all square' : owed ? 'You get back' : 'You owe'}</T2>
       <Text style={[type.amountHero, { color: colors.ink }]}>
-        {formatCents(Math.abs(cents))}
+        {formatMoney(Math.abs(cents), currency)}
       </Text>
     </View>
   );
@@ -475,6 +479,7 @@ function BalanceBar({ cents, max, color }: { cents: number; max: number; color: 
 
 function ExpenseRow({
   expense,
+  currency,
   payerName,
   stamp,
   locked,
@@ -482,6 +487,7 @@ function ExpenseRow({
   onDelete,
 }: {
   expense: Expense;
+  currency: Currency;
   payerName: string;
   stamp: ReactNode;
   locked: boolean;
@@ -489,7 +495,7 @@ function ExpenseRow({
   onDelete: () => void;
 }) {
   const swipe = useRef<SwipeableMethods>(null);
-  const label = `${expense.description}, ${payerName} paid, ${formatCents(expense.amount_cents)}`;
+  const label = `${expense.description}, ${payerName} paid, ${formatMoney(expense.amount_cents, currency)}`;
   const body = (
     <>
       {stamp}
@@ -497,7 +503,7 @@ function ExpenseRow({
         <T1 numberOfLines={2}>{expense.description}</T1>
         <Text style={styles.payer}>{payerName} paid</Text>
       </View>
-      <Amount cents={expense.amount_cents} style={styles.moneyColumn} />
+      <Amount cents={expense.amount_cents} currency={currency} style={styles.moneyColumn} />
     </>
   );
 
