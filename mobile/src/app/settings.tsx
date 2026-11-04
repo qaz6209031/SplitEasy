@@ -2,7 +2,7 @@ import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -10,7 +10,7 @@ import { useDialog } from '@/components/Dialog';
 import { Icon } from '@/components/Icon';
 import { colors, space, type, useResolve } from '@/components/theme';
 import { Button, Footnote, Group, LinkButton, NavBar, Row, TextField } from '@/components/ui';
-import { AppLinks } from '@/lib/links';
+import { AppLinks, appStoreReviewURL } from '@/lib/links';
 import { userMessage } from '@/lib/supabase';
 import { checkAndDownloadUpdate, describeCurrentUpdate, Updates, updatesSupported } from '@/lib/updates';
 
@@ -100,6 +100,10 @@ export default function SettingsScreen() {
           </Row>
           <Row onPress={() => openLink(AppLinks.support)} accessibilityLabel="Support" minHeight={56}>
             <Text style={styles.rowText}>Support</Text>
+            <Icon name="chev-r" size={18} color={colors.ink3} />
+          </Row>
+          <Row onPress={() => Linking.openURL(appStoreReviewURL)} accessibilityLabel="Rate Tabmates" accessibilityHint="Opens the App Store" minHeight={56}>
+            <Text style={styles.rowText}>Rate Tabmates</Text>
             <Icon name="chev-r" size={18} color={colors.ink3} />
           </Row>
         </Group>
