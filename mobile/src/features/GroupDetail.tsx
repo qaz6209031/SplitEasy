@@ -27,6 +27,7 @@ import {
 } from '@/components/ui';
 import { isLocked, type Expense, type Group } from '@/data/types';
 import { paymentKey, type Payment } from '@/domain/debts';
+import { leaveOption } from '@/domain/membership';
 import { currencyOf, formatMoney, type Currency } from '@/domain/money';
 import { groupSummaryText } from '@/domain/summary';
 import { useGroupDetail } from '@/features/useGroupDetail';
@@ -61,7 +62,7 @@ export function GroupDetail({
   const { userId } = useAuth();
   const dialog = useDialog();
   const detail = useGroupDetail(id, onChange);
-  const { group, members, expenses, settlements, balances, payments, loaded } = detail;
+  const { group, members, formerMembers, expenses, settlements, balances, payments, loaded } = detail;
   // null until the user picks a tab: a group that's settling up opens on who pays whom.
   const [chosenTab, setTab] = useState<Tab | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,14 +74,16 @@ export function GroupDetail({
   const formatCents = (cents: number) => formatMoney(cents, currency);
   const [scrolled, setScrolled] = useState(false);
 
+  // People who left still have names (and stamps) on the expenses and payments they were part of.
+  const people = [...members, ...formerMembers];
   const name = (personId: string) =>
-    personId === userId ? 'You' : (members.find((m) => m.id === personId)?.display_name ?? 'Unknown');
+    personId === userId ? 'You' : (people.find((m) => m.id === personId)?.display_name ?? 'Unknown');
   /** Mid-sentence form: "Alice paid you". */
   const objectName = (personId: string) => (personId === userId ? 'you' : name(personId));
-  /** Each member keeps one stamp colour, in the order they joined. */
-  const stampColors = assignStampColors(members.map((m) => m.id));
+  /** Each member keeps one stamp colour, in the order they joined; people who left come after. */
+  const stampColors = assignStampColors(people.map((m) => m.id));
   const colorOf = (personId: string) => stampColors.get(personId) ?? NO_STAMP;
-  const stampName = (personId: string) => members.find((m) => m.id === personId)?.display_name || name(personId);
+  const stampName = (personId: string) => people.find((m) => m.id === personId)?.display_name || name(personId);
 
   // Payments and the settled mark recorded while this screen is open get stamped in; ones that were
   // already there when it loaded just sit on the page.
@@ -109,7 +112,7 @@ export function GroupDetail({
   }, [copied]);
   async function copySummary() {
     if (!group) return;
-    await Clipboard.setStringAsync(groupSummaryText({ group, members, expenses, settlements, myId: userId }));
+    await Clipboard.setStringAsync(groupSummaryText({ group, members, formerMembers, expenses, settlements, myId: userId }));
     setCopied(true);
   }
 
@@ -142,6 +145,38 @@ export function GroupDetail({
       confirmTitle: 'Reopen Group',
     });
     if (reopen) confirmReopen();
+  }
+
+  const leave = group && userId ? leaveOption({ userId, status: group.status, members, expenses, settlements }) : null;
+
+  async function confirmLeave() {
+    if (!group || !leave) return;
+    if (leave === 'settle-first') {
+      await dialog.alert(
+        'Settle up before leaving',
+        "You're part of this group's expenses, so your share could still change. Once the group is settled up, you can leave and its history stays as it is.",
+      );
+      return;
+    }
+    const ok = await dialog.confirm(
+      leave === 'delete'
+        ? {
+            title: `Delete "${group.name}"?`,
+            message:
+              expenses.length > 0
+                ? "You're the only one left, so the group and all its expenses are deleted. This can't be undone."
+                : "You're the only member, so the group is deleted. This can't be undone.",
+            confirmTitle: 'Delete Group',
+            tone: 'red',
+          }
+        : {
+            title: `Leave "${group.name}"?`,
+            message: "It's removed from your groups. Your past expenses stay, so everyone's balances don't change. To come back, you'll need the invite code.",
+            confirmTitle: 'Leave',
+            tone: 'red',
+          },
+    );
+    if (ok && (await detail.leave()) && !embedded) router.back();
   }
 
   async function confirmDelete(expense: Expense) {
@@ -371,6 +406,18 @@ export function GroupDetail({
                   icon={copied ? 'check' : 'copy'}
                   variant="secondary"
                   onPress={copySummary}
+                />
+              </View>
+            ) : null}
+
+            {leave ? (
+              <View style={[styles.block, styles.blockRuled, { alignItems: 'center' }]}>
+                <LinkButton
+                  title={leave === 'delete' ? 'Delete Group' : 'Leave Group'}
+                  color={detail.updatingStatus ? colors.ink3 : colors.danger}
+                  disabled={detail.updatingStatus}
+                  onPress={confirmLeave}
+                  style={{ minHeight: 44 }}
                 />
               </View>
             ) : null}
