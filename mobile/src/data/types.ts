@@ -17,6 +17,8 @@ export interface Group {
   created_at: string;
   /** Settle up happens once, at the end: active → settling (locked) → settled. Reopen → active. */
   status: GroupStatus;
+  /** ISO 4217 code chosen when the group was made; every amount in the group is in it. Older groups: USD. */
+  currency?: string | null;
 }
 
 export interface ExpenseSplit {

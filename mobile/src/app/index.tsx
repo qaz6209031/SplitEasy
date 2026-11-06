@@ -12,7 +12,7 @@ import { assignStampColors, colors, space, stampColor, type } from '@/components
 import { BalanceLabel, Button, IconButton, StatusLine, T2, styles as ui } from '@/components/ui';
 import { fetchGroups, fetchMembersByGroup, fetchMyBalances } from '@/data/repository';
 import type { Group, Profile } from '@/data/types';
-import { formatCents } from '@/domain/money';
+import { currencyOf, formatMoney, type Currency } from '@/domain/money';
 import { GroupDetail } from '@/features/GroupDetail';
 import { userMessage } from '@/lib/supabase';
 
@@ -74,7 +74,15 @@ export default function GroupsScreen() {
     }, [load]),
   );
 
-  const total = groups.reduce((sum, g) => sum + (balances.get(g.id) ?? 0), 0);
+  // Amounts in different currencies never add up, so the overall position is kept per currency,
+  // in the order the currencies first appear in the list (newest group first).
+  const totals: Total[] = [];
+  for (const g of groups) {
+    const currency = currencyOf(g.currency);
+    let total = totals.find((t) => t.currency.code === currency.code);
+    if (!total) totals.push((total = { currency, cents: 0 }));
+    total.cents += balances.get(g.id) ?? 0;
+  }
   // The open group: the one picked, else the first, so the right pane is never blank.
   const open = split ? (groups.find((g) => g.id === picked) ?? groups[0] ?? null) : null;
 
@@ -105,7 +113,7 @@ export default function GroupsScreen() {
             <Text style={styles.largeTitle} accessibilityRole="header">
               Groups
             </Text>
-            {groups.length > 0 ? <Overall cents={total} /> : null}
+            {groups.length > 0 ? <Overall totals={totals} /> : null}
           </View>
         }
         ItemSeparatorComponent={() => <View style={[ui.hairline, { marginLeft: 102 }]} />}
@@ -154,14 +162,34 @@ export default function GroupsScreen() {
   );
 }
 
-/** Your net position across every group: the one large number on this screen. */
-function Overall({ cents }: { cents: number }) {
-  if (cents === 0) return <T2 style={{ marginTop: 6 }}>You’re all square across your groups.</T2>;
-  const owed = cents > 0;
+type Total = { currency: Currency; cents: number };
+
+/**
+ * Your net position across every group: the one large number on this screen. With groups in more
+ * than one currency, one smaller figure per currency.
+ */
+function Overall({ totals }: { totals: Total[] }) {
+  const open = totals.filter((t) => t.cents !== 0);
+  if (open.length === 0) return <T2 style={{ marginTop: 6 }}>You’re all square across your groups.</T2>;
+  const say = (t: Total) => `${t.cents > 0 ? 'you’re owed' : 'you owe'} ${formatMoney(Math.abs(t.cents), t.currency)}`;
+  if (open.length === 1) {
+    const [only] = open;
+    return (
+      <View style={{ marginTop: space.s }} accessible accessibilityLabel={`Overall, ${say(only)}`}>
+        <T2>{only.cents > 0 ? 'Overall, you’re owed' : 'Overall, you owe'}</T2>
+        <Text style={[type.amountHero, { fontSize: 44, lineHeight: 50, color: colors.ink }]}>{formatMoney(Math.abs(only.cents), only.currency)}</Text>
+      </View>
+    );
+  }
   return (
-    <View style={{ marginTop: space.s }} accessible accessibilityLabel={`Overall, ${owed ? 'you’re owed' : 'you owe'} ${formatCents(Math.abs(cents))}`}>
-      <T2>{owed ? 'Overall, you’re owed' : 'Overall, you owe'}</T2>
-      <Text style={[type.amountHero, { fontSize: 44, lineHeight: 50, color: colors.ink }]}>{formatCents(Math.abs(cents))}</Text>
+    <View style={{ marginTop: space.s, gap: space.s }} accessible accessibilityLabel={`Overall, ${open.map(say).join(', and ')}`}>
+      <T2>Overall</T2>
+      {open.map((t) => (
+        <View key={t.currency.code}>
+          <T2>{t.cents > 0 ? 'You’re owed' : 'You owe'}</T2>
+          <Text style={[type.amountHero, { fontSize: 34, lineHeight: 40, color: colors.ink }]}>{formatMoney(Math.abs(t.cents), t.currency)}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -203,6 +231,8 @@ function GroupRow({
   onPress?: () => void;
 }) {
   const settled = group.status === 'settled';
+  const currency = currencyOf(group.currency);
+  const formatCents = (cents: number) => formatMoney(cents, currency);
   const label = [
     group.name,
     group.status === 'settled' ? 'settled' : group.status === 'settling' ? 'settling up' : null,
@@ -225,7 +255,7 @@ function GroupRow({
         </Text>
         {group.status !== 'active' ? <StatusLine status={settled ? 'settled' : 'settling'} /> : null}
       </View>
-      {settled && balance === 0 ? null : <BalanceLabel cents={balance} />}
+      {settled && balance === 0 ? null : <BalanceLabel cents={balance} currency={currency} />}
       {onPress ? null : <Icon name="chev-r" size={18} color={colors.ink3} />}
     </Pressable>
   );

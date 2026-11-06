@@ -2,7 +2,7 @@ import type { Expense, Group, Profile, Settlement } from '@/data/types';
 
 import { netBalances } from './balances';
 import { simplifyDebts } from './debts';
-import { formatCents } from './money';
+import { currencyOf, formatMoney } from './money';
 import type { SplitMethod } from './splits';
 
 const STATUS = {
@@ -33,7 +33,7 @@ export function groupSummaryText({
   settlements,
   myId,
 }: {
-  group: Pick<Group, 'name' | 'status'>;
+  group: Pick<Group, 'name' | 'status'> & { currency?: string | null };
   members: Profile[];
   expenses: Expense[];
   settlements: Settlement[];
@@ -48,17 +48,24 @@ export function groupSummaryText({
   const repayments = simplifyDebts(balances);
   const total = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
   const memberNames = members.map((m) => (m.id === myId ? `${name(m.id)} (me)` : name(m.id)));
+  const currency = currencyOf(group.currency);
+  const formatCents = (cents: number) => formatMoney(cents, currency);
+  const zero = formatCents(0);
+  const rounding =
+    currency.decimals === 0
+      ? `- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person's exact share is listed. ${currency.code} is split into whole units only (no decimals); when an amount doesn't divide evenly, the extra units go to whoever was closest to the next one.`
+      : "- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person's exact share in dollars is listed; when an amount doesn't divide evenly, the extra cents go to whoever was closest to the next cent.";
 
   const lines = [
     `Tabmates group: ${group.name}`,
     `Status: ${STATUS[group.status]}`,
-    'Currency: US dollars',
+    `Currency: ${currency.plural} (${currency.code})`,
     `Members (${members.length}): ${memberNames.join(', ')}`,
     '',
     'How Tabmates calculates:',
-    '- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person\'s exact share in dollars is listed; when an amount doesn\'t divide evenly, the extra cents go to whoever was closest to the next cent.',
+    rounding,
     '- Balance = amount paid for expenses - own shares + payments sent - payments received. Positive means they get money back; negative means they owe.',
-    '- Suggested repayments are the fewest payments that bring everyone to $0.00.',
+    `- Suggested repayments are the fewest payments that bring everyone to ${zero}.`,
     '',
     `Expenses (${expenses.length}, total ${formatCents(total)}):`,
     ...(expenses.length === 0 ? ['None'] : []),
@@ -84,7 +91,7 @@ export function groupSummaryText({
     'Balances:',
     ...members.map((m) => {
       const cents = balances.get(m.id) ?? 0;
-      const state = cents > 0 ? `gets back ${formatCents(cents)}` : cents < 0 ? `owes ${formatCents(-cents)}` : 'settled up ($0.00)';
+      const state = cents > 0 ? `gets back ${formatCents(cents)}` : cents < 0 ? `owes ${formatCents(-cents)}` : `settled up (${zero})`;
       return `- ${name(m.id)}: ${state}`;
     }),
     '',
@@ -92,7 +99,7 @@ export function groupSummaryText({
     ...(repayments.length === 0 ? ['None, everyone is settled up.'] : []),
     ...repayments.map((p, i) => `${i + 1}. ${name(p.from)} pays ${name(p.to)} ${formatCents(p.amountCents)}`),
     '',
-    'Please check: does every balance follow from the expenses and payments above, do the balances add up to $0.00, and do the suggested repayments settle everyone?',
+    `Please check: does every balance follow from the expenses and payments above, do the balances add up to ${zero}, and do the suggested repayments settle everyone?`,
   ];
   return lines.join('\n');
 }

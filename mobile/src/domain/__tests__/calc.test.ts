@@ -78,3 +78,25 @@ describe('display helpers', () => {
     expect(hasOperator('12+3')).toBe(true);
   });
 });
+
+describe('whole-unit currencies', () => {
+  it('types "00" as two zeros', () => {
+    expect(applyKey('12', '00')).toBe('1200');
+    expect(applyKey('', '00')).toBe('0');
+    expect(applyKey('5', '00', true)).toBe('0');
+  });
+
+  it('allows two more whole digits when asked (₩2,500,000)', () => {
+    let expr = '';
+    for (const k of ['2', '5', '00', '00', '00'] as CalcKey[]) expr = applyKey(expr, k, false, 9);
+    expect(expr).toBe('25000000');
+    expect(applyKey('9999999', '9')).toBe('9999999');
+    expect(applyKey('9999999', '9', false, 9)).toBe('99999999');
+  });
+
+  it('rounds results to whole units with a step of 100', () => {
+    expect(evaluateCents('1000÷3', 100)).toBe(33_300);
+    expect(evaluateCents('1000÷6', 100)).toBe(16_700);
+    expect(evaluateCents('350+120', 100)).toBe(47_000);
+  });
+});

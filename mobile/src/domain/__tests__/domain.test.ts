@@ -1,9 +1,12 @@
 import { equalSplit, netBalances } from '../balances';
 import { simplifyDebts } from '../debts';
-import { formatCents, parseCents } from '../money';
+import { CURRENCIES, currencyOf, editableString, formatMoney, parseCents, USD } from '../money';
 import { computeSplit, formatHundredths, initialInputs, inputsFromShares, splitByWeights } from '../splits';
 import { groupSummaryText } from '../summary';
 import type { Expense, Settlement } from '@/data/types';
+
+const TWD = currencyOf('TWD');
+const formatCents = (cents: number) => formatMoney(cents, USD);
 
 let nextId = 0;
 const expense = (amount: number, paidBy: string, among: string[]): Expense => {
@@ -248,5 +251,97 @@ describe('split methods', () => {
     ];
     expect(inputsFromShares('shares', splits)).toEqual({ a: '2', b: '1' });
     expect(inputsFromShares('exact', splits)).toEqual({ a: '6.67', b: '3.33' });
+  });
+});
+
+describe('currencies', () => {
+  it('knows USD and TWD, and treats a missing currency as USD', () => {
+    expect(CURRENCIES.map((c) => c.code)).toEqual(['USD', 'TWD', 'JPY', 'KRW', 'EUR', 'THB']);
+    expect(currencyOf(null)).toBe(USD);
+    expect(currencyOf(undefined)).toBe(USD);
+    expect(TWD.symbol).toBe('NT$');
+  });
+
+  it('formats TWD in whole dollars', () => {
+    expect(formatMoney(120_000, TWD)).toBe('NT$1,200');
+    expect(formatMoney(100, TWD)).toBe('NT$1');
+    expect(formatMoney(0, TWD)).toBe('NT$0');
+    expect(formatMoney(-35_000, TWD)).toBe('-NT$350');
+    // An odd amount from a build without currencies still shows exactly.
+    expect(formatMoney(1250, TWD)).toBe('NT$12.50');
+  });
+
+  it('formats yen and won whole, euros and baht with cents', () => {
+    expect(formatMoney(1_234_500, currencyOf('JPY'))).toBe('¥12,345');
+    expect(formatMoney(250_000_000, currencyOf('KRW'))).toBe('₩2,500,000');
+    expect(formatMoney(1234, currencyOf('EUR'))).toBe('€12.34');
+    expect(formatMoney(5950, currencyOf('THB'))).toBe('฿59.50');
+    expect(parseCents('¥1200', currencyOf('JPY'))).toBe(120_000);
+    expect(parseCents('12.5', currencyOf('KRW'))).toBeNull();
+    expect(parseCents('€12.50', currencyOf('EUR'))).toBe(1250);
+  });
+
+  it('formats an unknown code readably', () => {
+    expect(formatMoney(1234, currencyOf('GBP'))).toBe('GBP 12.34');
+  });
+
+  it('edits and parses TWD as whole dollars', () => {
+    expect(editableString(120_000, TWD)).toBe('1200');
+    expect(editableString(0, TWD)).toBe('0');
+    expect(parseCents('1200', TWD)).toBe(120_000);
+    expect(parseCents('NT$1,200.00', TWD)).toBe(120_000);
+    expect(parseCents('12.5', TWD)).toBeNull();
+    expect(parseCents('0', TWD)).toBeNull();
+  });
+
+  it('splits TWD equally in whole dollars, extra dollars first', () => {
+    expect(equalSplit(100_00, 3, 100)).toEqual([3400, 3300, 3300]);
+    const split = computeSplit('equal', 100_00, ['a', 'b', 'c'], new Set(['a', 'b', 'c']), {}, TWD);
+    expect(split.shares.map((s) => s.amountCents)).toEqual([3400, 3300, 3300]);
+  });
+
+  it('splits TWD by percent and shares in whole dollars that add up', () => {
+    const percent = computeSplit('percent', 1000_00, ['a', 'b', 'c'], new Set(), { a: '33.33', b: '33.33', c: '33.34' }, TWD);
+    expect(percent.ok).toBe(true);
+    expect(percent.shares.every((s) => s.amountCents % 100 === 0)).toBe(true);
+    expect(percent.shares.reduce((sum, s) => sum + s.amountCents, 0)).toBe(1000_00);
+
+    const shares = computeSplit('shares', 1000_00, ['a', 'b', 'c'], new Set(), { a: '1', b: '1', c: '1' }, TWD);
+    expect(shares.shares.map((s) => s.amountCents)).toEqual([33_400, 33_300, 33_300]);
+  });
+
+  it('rejects decimals in TWD exact amounts', () => {
+    const bad = computeSplit('exact', 1000_00, ['a', 'b'], new Set(), { a: '500.50', b: '499.50' }, TWD);
+    expect(bad.invalid).toBe(true);
+    const good = computeSplit('exact', 1000_00, ['a', 'b'], new Set(), { a: '600', b: '400' }, TWD);
+    expect(good.ok).toBe(true);
+  });
+
+  it('starts TWD exact inputs in whole dollars', () => {
+    expect(initialInputs('exact', 1000_00, ['a', 'b', 'c'], TWD)).toEqual({ a: '334', b: '333', c: '333' });
+  });
+
+  it('settles a TWD group in whole dollars', () => {
+    const shares = equalSplit(1000_00, 3, 100);
+    const e: Expense = {
+      id: 'tw',
+      group_id: 'g',
+      description: 'Hot pot',
+      amount_cents: 1000_00,
+      paid_by: 'a',
+      created_at: '2026-01-01',
+      split_method: 'equal',
+      splits: ['a', 'b', 'c'].map((user_id, i) => ({ user_id, amount_cents: shares[i], split_value: null })),
+    };
+    const payments = simplifyDebts(netBalances([e], []));
+    expect(payments.every((p) => p.amountCents % 100 === 0)).toBe(true);
+    expect(payments.map((p) => formatMoney(p.amountCents, TWD)).sort()).toEqual(['NT$333', 'NT$333']);
+  });
+
+  it('labels the copied summary with the currency', () => {
+    const text = groupSummaryText({ group: { name: 'Taipei', status: 'active', currency: 'TWD' }, members: [], expenses: [], settlements: [], myId: null });
+    expect(text).toContain('Currency: New Taiwan dollars (TWD)');
+    expect(text).toContain('NT$0');
+    expect(text).not.toContain('$0.00');
   });
 });

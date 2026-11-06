@@ -3,7 +3,7 @@
 // math is exact integer arithmetic and the preview always matches what is saved.
 
 import { equalSplit } from './balances';
-import { editableString, parseCents } from './money';
+import { editableString, parseCents, parseHundredths, stepOf, USD, type Currency } from './money';
 
 export type SplitMethod = 'equal' | 'exact' | 'percent' | 'shares';
 
@@ -27,8 +27,10 @@ export interface SplitResult {
 /**
  * Splits a total in proportion to integer weights. Each share is rounded down, then the leftover
  * cents go to the largest remainders (ties: earlier people), so the shares add up to the total.
+ * With a `step` of 100 (a whole-unit currency) the same happens in whole units.
  */
-export function splitByWeights(totalCents: number, weights: number[]): number[] {
+export function splitByWeights(totalCents: number, weights: number[], step = 1): number[] {
+  if (step !== 1 && totalCents % step === 0) return splitByWeights(totalCents / step, weights).map((a) => a * step);
   const sum = weights.reduce((a, b) => a + b, 0);
   if (sum <= 0) return weights.map(() => 0);
   const remainders = weights.map((w) => (totalCents * w) % sum);
@@ -45,9 +47,6 @@ export function splitByWeights(totalCents: number, weights: number[]): number[] 
   return amounts;
 }
 
-/** "33.33" -> 3333. Same rules as money input: positive, at most 2 decimals. */
-const parseHundredths = parseCents;
-
 /** 3333 -> "33.33", 5000 -> "50", 150 -> "1.5". */
 export function formatHundredths(hundredths: number): string {
   return (hundredths / 100).toFixed(2).replace(/\.?0+$/, '');
@@ -58,7 +57,8 @@ const isBlank = (text: string | undefined) => !text || /^[\s0.,$]*$/.test(text);
 
 /**
  * Works out each person's share. `memberIds` sets the order (it decides who gets leftover cents);
- * `participants` is used by the equal split, `inputs` (text typed per person) by the others.
+ * `participants` is used by the equal split, `inputs` (text typed per person) by the others. In a
+ * whole-unit currency every share is a whole unit.
  */
 export function computeSplit(
   method: SplitMethod,
@@ -66,10 +66,12 @@ export function computeSplit(
   memberIds: string[],
   participants: Set<string>,
   inputs: Record<string, string>,
+  currency: Currency = USD,
 ): SplitResult {
+  const step = stepOf(currency);
   if (method === 'equal') {
     const ids = memberIds.filter((id) => participants.has(id));
-    const amounts = totalCents ? equalSplit(totalCents, ids.length) : ids.map(() => 0);
+    const amounts = totalCents ? equalSplit(totalCents, ids.length, step) : ids.map(() => 0);
     const shares = ids.map((userId, i) => ({ userId, amountCents: amounts[i], value: null }));
     return { shares, ok: totalCents != null && ids.length > 0, invalid: false, remaining: null };
   }
@@ -79,7 +81,7 @@ export function computeSplit(
   for (const userId of memberIds) {
     const text = inputs[userId];
     if (isBlank(text)) continue;
-    const parsed = parseHundredths(text);
+    const parsed = method === 'exact' ? parseCents(text, currency) : parseHundredths(text);
     if (parsed == null || (method === 'percent' && parsed > 10000)) invalid = true;
     else entries.push({ userId, parsed });
   }
@@ -100,30 +102,41 @@ export function computeSplit(
     const amounts = !totalCents
       ? weights.map(() => 0)
       : remaining === 0
-        ? splitByWeights(totalCents, weights)
-        : weights.map((w) => Math.round((totalCents * w) / 10000));
+        ? splitByWeights(totalCents, weights, step)
+        : weights.map((w) => Math.round((totalCents * w) / 10000 / step) * step);
     const shares = toShares(amounts);
     return { shares, ok: !invalid && totalCents != null && shares.length > 0 && remaining === 0, invalid, remaining };
   }
-  const shares = toShares(totalCents ? splitByWeights(totalCents, weights) : weights.map(() => 0));
+  const shares = toShares(totalCents ? splitByWeights(totalCents, weights, step) : weights.map(() => 0));
   return { shares, ok: !invalid && totalCents != null && shares.length > 0, invalid, remaining: null };
 }
 
 /** Starting inputs when switching to a method: the people currently on the expense, split evenly. */
-export function initialInputs(method: SplitMethod, totalCents: number | null, userIds: string[]): Record<string, string> {
+export function initialInputs(
+  method: SplitMethod,
+  totalCents: number | null,
+  userIds: string[],
+  currency: Currency = USD,
+): Record<string, string> {
   let texts: string[];
-  if (method === 'exact') texts = totalCents ? equalSplit(totalCents, userIds.length).map(editableString) : userIds.map(() => '');
+  if (method === 'exact') {
+    texts = totalCents ? equalSplit(totalCents, userIds.length, stepOf(currency)).map((c) => editableString(c, currency)) : userIds.map(() => '');
+  }
   else if (method === 'percent') texts = splitByWeights(10000, userIds.map(() => 1)).map(formatHundredths);
   else texts = userIds.map(() => '1');
   return Object.fromEntries(userIds.map((id, i) => [id, texts[i]]));
 }
 
 /** Inputs that reproduce a saved split, for editing it. */
-export function inputsFromShares(method: SplitMethod, shares: { user_id: string; amount_cents: number; split_value: number | null }[]) {
+export function inputsFromShares(
+  method: SplitMethod,
+  shares: { user_id: string; amount_cents: number; split_value: number | null }[],
+  currency: Currency = USD,
+) {
   return Object.fromEntries(
     shares.map((s) => [
       s.user_id,
-      method === 'exact' || s.split_value == null ? editableString(s.amount_cents) : formatHundredths(Math.round(s.split_value * 100)),
+      method === 'exact' || s.split_value == null ? editableString(s.amount_cents, currency) : formatHundredths(Math.round(s.split_value * 100)),
     ]),
   );
 }

@@ -24,8 +24,10 @@ export async function fetchGroup(id: string): Promise<Group> {
   return check(await supabase.from('groups').select().eq('id', id).single());
 }
 
-export async function createGroup(name: string): Promise<Group> {
-  return check(await supabase.rpc('create_group', { p_name: name }));
+export async function createGroup(name: string, currency: string): Promise<Group> {
+  // A US-dollar group leaves the currency to the database's default, the same call older builds make.
+  const params = currency === 'USD' ? { p_name: name } : { p_name: name, p_currency: currency };
+  return check(await supabase.rpc('create_group', params));
 }
 
 export async function joinGroup(code: string): Promise<Group> {
