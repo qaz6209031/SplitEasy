@@ -35,9 +35,10 @@ function defaultCurrency(): string {
  * Bottom sheet: create a group by name and currency, or join one with a 6-character invite code.
  */
 export default function NewGroupSheet() {
-  const { mode } = useLocalSearchParams<{ mode?: 'create' | 'join' }>();
+  // `code` comes from an invite link, so the sheet opens ready to join.
+  const { mode, code } = useLocalSearchParams<{ mode?: 'create' | 'join'; code?: string }>();
   const isJoin = mode === 'join';
-  const [text, setText] = useState('');
+  const [text, setText] = useState(isJoin && code ? cleanCode(code) : '');
   const [currency, setCurrency] = useState(defaultCurrency);
   const currencyIndex = Math.max(0, CURRENCIES.findIndex((c) => c.code === currency));
   const [busy, setBusy] = useState(false);
@@ -80,7 +81,7 @@ export default function NewGroupSheet() {
         value={text}
         onChangeText={(value) => {
           setError(null);
-          setText(isJoin ? value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) : value);
+          setText(isJoin ? cleanCode(value) : value);
         }}
         placeholder={isJoin ? 'K7Q2ZX' : 'Group name, e.g. Tahoe Trip'}
         autoFocus
@@ -123,6 +124,9 @@ export default function NewGroupSheet() {
     </View>
   );
 }
+
+/** Invite codes are 6 capital letters and digits; anything else typed or pasted is dropped. */
+const cleanCode = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.bg, paddingTop: 18, paddingHorizontal: 20, paddingBottom: 46, gap: 20 },

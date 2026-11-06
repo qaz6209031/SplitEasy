@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Join a group on Tabmates</title>
+<meta name="description" content="You're invited to split expenses in a group on Tabmates.">
+<meta property="og:title" content="Join my group on Tabmates">
+<meta property="og:description" content="Tap to open Tabmates and join the group.">
+<meta property="og:image" content="https://kaichin.dev/SplitEasy/join/icon.png">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="icon.png">
+<script>
+  // The invite code rides in the link (?code=K7Q2ZX). Safari's app banner reads its meta tag while the
+  // page is parsed, so it is written here with the code already in it.
+  var code = (new URLSearchParams(location.search).get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  var valid = code.length === 6;
+  var appLink = 'spliteasy://join/' + code;
+  document.write('<meta name="apple-itunes-app" content="app-id=6823494541' + (valid ? ', app-argument=' + appLink : '') + '">');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@700&family=Archivo:wght@800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --surface: #F4F5F7; --rule: #C9CBD1;
+    --ink: #16181D; --ink-2: #5E626C; --ink-3: #8E929B; --on-ink: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E0F12; --surface: #18191D; --rule: #3A3D44;
+      --ink: #F1F2F4; --ink-2: #A3A7B0; --ink-3: #70747D; --on-ink: #0E0F12;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font: 17px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100svh;
+    display: flex;
+    justify-content: center;
+    padding: max(48px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom));
+  }
+  main { width: 100%; max-width: 400px; display: flex; flex-direction: column; }
+  .icon { width: 72px; height: 72px; border-radius: 16px; display: block; }
+  h1 {
+    font-family: Archivo, -apple-system, sans-serif; font-weight: 800;
+    font-size: 34px; line-height: 40px; letter-spacing: -0.8px;
+    margin: 24px 0 8px;
+  }
+  .lede { color: var(--ink-2); margin: 0; }
+  /* The code reads like the one on the group's invite card in the app. */
+  .code {
+    margin: 28px 0 8px;
+    padding: 14px 0 14px 9px;
+    background: var(--surface);
+    border-radius: 12px;
+    text-align: center;
+    font-family: "Archivo Narrow", -apple-system, sans-serif; font-weight: 700;
+    font-size: 34px; letter-spacing: 9px;
+    font-variant-numeric: tabular-nums;
+    user-select: all; -webkit-user-select: all;
+  }
+  .code-label { color: var(--ink-3); font-size: 13px; text-align: center; margin: 0 0 28px; }
+  .button {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 52px; border-radius: 12px; padding: 0 20px;
+    font-size: 17px; font-weight: 600; text-decoration: none;
+  }
+  .primary { background: var(--ink); color: var(--on-ink); }
+  .secondary { color: var(--ink); border: 1px solid var(--rule); margin-top: 12px; }
+  .button:active { opacity: 0.7; }
+  .note { color: var(--ink-2); font-size: 15px; margin: 28px 0 0; }
+  .note b { color: var(--ink); font-weight: 600; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <img class="icon" src="icon.png" alt="" width="72" height="72">
+
+  <section id="invite">
+    <h1>You're invited to a group</h1>
+    <p class="lede">Split trip costs with friends on Tabmates, then settle up with the fewest payments.</p>
+    <div class="code" id="code" aria-describedby="code-label"></div>
+    <p class="code-label" id="code-label">Invite code</p>
+    <a class="button primary" id="open">Open in Tabmates</a>
+    <a class="button secondary" href="https://apps.apple.com/app/id6823494541">Get Tabmates on the App Store</a>
+    <p class="note">New to Tabmates? Install it, then come back and tap <b>Open in Tabmates</b>. Or tap <b>+</b> then <b>Join with Code</b> in the app and enter the code above.</p>
+  </section>
+
+  <section id="broken" hidden>
+    <h1>This invite link is incomplete</h1>
+    <p class="lede">Ask whoever sent it for the 6-character invite code, then tap <b>+</b> then <b>Join with Code</b> in Tabmates.</p>
+    <a class="button secondary" style="margin-top: 28px" href="https://apps.apple.com/app/id6823494541">Get Tabmates on the App Store</a>
+  </section>
+</main>
+<script>
+  if (valid) {
+    var box = document.getElementById('code');
+    box.textContent = code;
+    box.setAttribute('aria-label', 'Invite code ' + code.split('').join(' '));
+    document.getElementById('open').href = appLink;
+  } else {
+    document.getElementById('invite').hidden = true;
+    document.getElementById('broken').hidden = false;
+  }
+</script>
+</body>
+</html>
