@@ -30,6 +30,7 @@ import { paymentKey, type Payment } from '@/domain/debts';
 import { currencyOf, formatMoney, type Currency } from '@/domain/money';
 import { groupSummaryText } from '@/domain/summary';
 import { useGroupDetail } from '@/features/useGroupDetail';
+import { inviteLink } from '@/lib/invite';
 import { requestReviewAfterSettling } from '@/lib/reviewPrompt';
 
 type Tab = 'expenses' | 'balances';
@@ -93,7 +94,10 @@ export function GroupDetail({
     if (settledHere) requestReviewAfterSettling();
   }, [settledHere]);
 
-  const shareText = group ? `Join my group "${group.name}" on Tabmates with invite code ${group.invite_code}` : '';
+  // The link opens the app on the Join sheet; the code is there too for typing in by hand.
+  const shareText = group
+    ? `Join my group "${group.name}" on Tabmates: ${inviteLink(group.invite_code)}\nInvite code: ${group.invite_code}`
+    : '';
   const share = () => Share.share({ message: shareText });
 
   /** "Copied" confirmation on the Copy as Text button; cleared after a moment. */
@@ -615,7 +619,7 @@ function InviteBlock({ code, onShare }: { code: string; onShare: () => void }) {
   return (
     <View style={styles.invite}>
       <Text style={styles.inviteTitle}>Invite friends to this group</Text>
-      <T2>They tap + → Join with Code and enter:</T2>
+      <T2>Share the link, or they tap + → Join with Code and enter:</T2>
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'stretch', marginTop: space.xs }}>
         <Text selectable style={styles.code} accessibilityLabel={`Invite code ${code.split('').join(' ')}`}>
           {code}

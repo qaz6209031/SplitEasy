@@ -14,9 +14,13 @@ import { fetchGroups, fetchMembersByGroup, fetchMyBalances } from '@/data/reposi
 import type { Group, Profile } from '@/data/types';
 import { currencyOf, formatMoney, type Currency } from '@/domain/money';
 import { GroupDetail } from '@/features/GroupDetail';
+import { useInvites } from '@/lib/invite';
 import { userMessage } from '@/lib/supabase';
 
-const openSheet = (mode: 'create' | 'join') => router.push({ pathname: '/new-group', params: { mode } });
+const openSheet = (mode: 'create' | 'join', code?: string) =>
+  router.push({ pathname: '/new-group', params: code ? { mode, code } : { mode } });
+/** An invite link someone tapped: the Join sheet with its code filled in. */
+const openInvite = (code: string) => openSheet('join', code);
 
 /**
  * The system action sheet for "+": create a group or join one. On a wide screen (iPhone Duo open,
@@ -66,6 +70,9 @@ export default function GroupsScreen() {
       setLoaded(true);
     }
   }, [userId, dialog]);
+
+  // An invite link opens the Join sheet, whether it arrived before sign-in or while the app was open.
+  useInvites(openInvite);
 
   // Reload whenever the screen is shown again (e.g. coming back from a group).
   useFocusEffect(
