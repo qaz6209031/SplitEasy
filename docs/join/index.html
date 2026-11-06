@@ -13,9 +13,11 @@
 <script>
   // The invite code rides in the link (?code=K7Q2ZX). Safari's app banner reads its meta tag while the
   // page is parsed, so it is written here with the code already in it.
+  // The app link points at the groups list (spliteasy://?invite=…): an app version from before invite
+  // links opens there instead of an error page, and a current one opens the Join sheet with the code.
   var code = (new URLSearchParams(location.search).get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   var valid = code.length === 6;
-  var appLink = 'spliteasy://join/' + code;
+  var appLink = 'spliteasy://?invite=' + code;
   document.write('<meta name="apple-itunes-app" content="app-id=6823494541' + (valid ? ', app-argument=' + appLink : '') + '">');
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -72,6 +74,7 @@
   .secondary { color: var(--ink); border: 1px solid var(--rule); margin-top: 12px; }
   .button:active { opacity: 0.7; }
   .note { color: var(--ink-2); font-size: 15px; margin: 28px 0 0; }
+  .note + .note { margin-top: 12px; }
   .note b { color: var(--ink); font-weight: 600; }
   [hidden] { display: none !important; }
 </style>
@@ -87,7 +90,8 @@
     <p class="code-label" id="code-label">Invite code</p>
     <a class="button primary" id="open">Open in Tabmates</a>
     <a class="button secondary" href="https://apps.apple.com/app/id6823494541">Get Tabmates on the App Store</a>
-    <p class="note">New to Tabmates? Install it, then come back and tap <b>Open in Tabmates</b>. Or tap <b>+</b> then <b>Join with Code</b> in the app and enter the code above.</p>
+    <p class="note">New to Tabmates? Install it, then come back and tap <b>Open in Tabmates</b>.</p>
+    <p class="note">If Tabmates opens on your groups instead of the Join screen, update the app, or tap <b>+</b> then <b>Join with Code</b> and enter the code above.</p>
   </section>
 
   <section id="broken" hidden>
