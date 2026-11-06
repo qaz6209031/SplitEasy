@@ -1,5 +1,5 @@
 // Money is integer hundredths of the group's currency everywhere ("cents", as the database columns
-// say), whatever the currency. A currency without minor units in everyday use (the New Taiwan dollar)
+// say), whatever the currency. A currency without minor units in everyday use (TWD, JPY, KRW)
 // keeps the same scale but is only ever entered and split in whole units, so its amounts are always
 // multiples of 100. Keeping one scale means a build that predates currencies still shows the right
 // number for such a group, only with a "$" in front.
@@ -9,15 +9,20 @@ export interface Currency {
   code: string;
   /** What goes in front of an amount: "$", "NT$". */
   symbol: string;
-  name: string;
-  /** Decimal places people actually use: 2 for USD, 0 for TWD. */
+  /** In a sentence: "Every amount in the group is in Japanese yen." */
+  plural: string;
+  /** Decimal places people actually use: 2 for USD and EUR, 0 for TWD, JPY and KRW. */
   decimals: 0 | 2;
 }
 
 /** The currencies a new group can use, in the order the picker shows them. */
 export const CURRENCIES: readonly Currency[] = [
-  { code: 'USD', symbol: '$', name: 'US Dollar', decimals: 2 },
-  { code: 'TWD', symbol: 'NT$', name: 'New Taiwan Dollar', decimals: 0 },
+  { code: 'USD', symbol: '$', plural: 'US dollars', decimals: 2 },
+  { code: 'TWD', symbol: 'NT$', plural: 'New Taiwan dollars', decimals: 0 },
+  { code: 'JPY', symbol: '¥', plural: 'Japanese yen', decimals: 0 },
+  { code: 'KRW', symbol: '₩', plural: 'South Korean won', decimals: 0 },
+  { code: 'EUR', symbol: '€', plural: 'euros', decimals: 2 },
+  { code: 'THB', symbol: '฿', plural: 'Thai baht', decimals: 2 },
 ];
 
 export const USD = CURRENCIES[0];
@@ -26,7 +31,7 @@ export const USD = CURRENCIES[0];
 export function currencyOf(code: string | null | undefined): Currency {
   if (!code) return USD;
   // A code this build doesn't know (added in a later version) still reads sensibly: "EUR 12.00".
-  return CURRENCIES.find((c) => c.code === code) ?? { code, symbol: `${code} `, name: code, decimals: 2 };
+  return CURRENCIES.find((c) => c.code === code) ?? { code, symbol: `${code} `, plural: code, decimals: 2 };
 }
 
 /** The smallest amount an expense is split into, in cents: 1 for USD, 100 for TWD. */
@@ -57,7 +62,7 @@ export function editableString(cents: number, currency: Currency = USD): string 
  * A lone comma is treated as a decimal separator ("12,50"), since some keyboards use it.
  */
 export function parseCents(text: string, currency: Currency = USD): number | null {
-  const cents = parseHundredths(text.replace(/NT\$|\$/g, ''));
+  const cents = parseHundredths(text.replace(/NT\$|[$¥₩€฿]/g, ''));
   if (cents == null) return null;
   return cents % stepOf(currency) === 0 ? cents : null;
 }

@@ -7,8 +7,11 @@ export const OPERATORS = ['+', '−', '×', '÷'] as const;
 type Operator = (typeof OPERATORS)[number];
 const isOperator = (c: string): c is Operator => (OPERATORS as readonly string[]).includes(c);
 
-/** Longest whole-number part a single number may have, so a stray tap can't build a trillion. */
-const MAX_WHOLE_DIGITS = 7;
+/**
+ * Longest whole-number part a single number may have, so a stray tap can't build a trillion. A
+ * currency without decimals (₩2,500,000 for a hotel) gets two more digits.
+ */
+export const MAX_WHOLE_DIGITS = 7;
 const MAX_LENGTH = 40;
 
 /** The number being typed at the end of the expression ("" right after an operator). */
@@ -22,9 +25,9 @@ function lastNumber(expr: string): string {
  * The expression after one key press. `fresh` means the current value is selected, as when a field
  * opens: a digit or point replaces it, an operator continues from it, delete clears it.
  */
-export function applyKey(expr: string, key: CalcKey, fresh = false): string {
+export function applyKey(expr: string, key: CalcKey, fresh = false, maxWhole = MAX_WHOLE_DIGITS): string {
   // "00" (on the keypad of a currency without decimals, in place of the point) is two zeros.
-  if (key === '00') return applyKey(applyKey(expr, '0', fresh), '0');
+  if (key === '00') return applyKey(applyKey(expr, '0', fresh, maxWhole), '0', false, maxWhole);
   if (fresh && key !== 'del' && !isOperator(key)) expr = '';
   if (fresh && key === 'del') return '';
 
@@ -47,7 +50,7 @@ export function applyKey(expr: string, key: CalcKey, fresh = false): string {
   const [whole, fraction] = current.split('.');
   if (fraction != null && fraction.length >= 2) return expr;
   if (fraction == null && whole === '0') return expr.slice(0, -1) + key;
-  if (fraction == null && whole.length >= MAX_WHOLE_DIGITS) return expr;
+  if (fraction == null && whole.length >= maxWhole) return expr;
   return expr + key;
 }
 

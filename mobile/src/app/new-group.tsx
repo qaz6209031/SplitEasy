@@ -1,25 +1,34 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, type } from '@/components/theme';
-import { Button, ErrorNote, LinkButton, SegmentedControl, T2, TextField, styles as ui } from '@/components/ui';
+import { colors, fonts, radius, space, type } from '@/components/theme';
+import { Button, ErrorNote, LinkButton, T2, TextField, styles as ui } from '@/components/ui';
 import { createGroup, joinGroup } from '@/data/repository';
 import { CURRENCIES } from '@/domain/money';
 import { userMessage } from '@/lib/supabase';
 
 const LAST_CURRENCY_KEY = 'tabmates.lastCurrency';
 
-/** The currency you used for your last new group; on a first group, NT$ in Taiwan and $ elsewhere. */
+/** A first group's currency, from where the phone is: NT$ in Taiwan, ¥ in Japan, and so on. */
+const CURRENCY_BY_TIME_ZONE: Record<string, string> = {
+  'Asia/Taipei': 'TWD',
+  'Asia/Tokyo': 'JPY',
+  'Asia/Seoul': 'KRW',
+  'Asia/Bangkok': 'THB',
+};
+
+/** The currency you used for your last new group; on a first group, the local one, else $. */
 function defaultCurrency(): string {
   try {
     const last = localStorage.getItem(LAST_CURRENCY_KEY);
     if (last && CURRENCIES.some((c) => c.code === last)) return last;
   } catch {}
   try {
-    if (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Taipei') return 'TWD';
-  } catch {}
-  return 'USD';
+    return CURRENCY_BY_TIME_ZONE[Intl.DateTimeFormat().resolvedOptions().timeZone] ?? 'USD';
+  } catch {
+    return 'USD';
+  }
 }
 
 /**
@@ -86,12 +95,27 @@ export default function NewGroupSheet() {
       {isJoin ? null : (
         <View>
           <Text style={ui.fieldLabel}>Currency</Text>
-          <SegmentedControl
-            values={CURRENCIES.map((c) => `${c.code}  ${c.symbol}`)}
-            index={currencyIndex}
-            onChange={(i) => setCurrency(CURRENCIES[i].code)}
-          />
-          <T2 style={styles.hint}>Every amount in the group is in {CURRENCIES[currencyIndex].name}s. You can’t change it later.</T2>
+          <View style={styles.currencies} accessibilityRole="radiogroup" accessibilityLabel="Currency">
+            {CURRENCIES.map((c) => {
+              const selected = c.code === currency;
+              return (
+                <Pressable
+                  key={c.code}
+                  onPress={() => setCurrency(c.code)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={c.plural}
+                  style={[styles.currency, selected && styles.currencyOn]}
+                >
+                  <Text style={[styles.currencySymbol, !selected && { color: colors.ink2 }]} allowFontScaling={false}>
+                    {c.symbol}
+                  </Text>
+                  <Text style={[styles.currencyCode, selected && { fontWeight: '600' }]}>{c.code}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <T2 style={styles.hint}>Every amount in the group is in {CURRENCIES[currencyIndex].plural}. You can’t change it later.</T2>
         </View>
       )}
       {error ? <ErrorNote title={isJoin ? "Couldn't join group" : "Couldn't create group"} message={error} /> : null}
@@ -105,5 +129,23 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { ...type.title, color: colors.ink },
   hint: { marginTop: 8 },
+  currencies: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  currency: {
+    // Three to a row.
+    flexBasis: '30%',
+    flexGrow: 1,
+    minHeight: 44,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  currencyOn: { backgroundColor: colors.bg, borderColor: colors.ink },
+  currencySymbol: { fontFamily: fonts.moneyBold, fontSize: 17, color: colors.ink },
+  currencyCode: { ...type.subhead, color: colors.ink },
   code: { height: 64, textAlign: 'center', fontFamily: fonts.moneyBold, fontSize: 30, letterSpacing: 9, paddingLeft: 28 },
 });

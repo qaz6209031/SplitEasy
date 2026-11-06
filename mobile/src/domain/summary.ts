@@ -53,13 +53,13 @@ export function groupSummaryText({
   const zero = formatCents(0);
   const rounding =
     currency.decimals === 0
-      ? `- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person's exact share is listed. ${currency.code} is split into whole dollars only; when an amount doesn't divide evenly, the extra dollars go to whoever was closest to the next dollar.`
+      ? `- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person's exact share is listed. ${currency.code} is split into whole units only (no decimals); when an amount doesn't divide evenly, the extra units go to whoever was closest to the next one.`
       : "- Each expense is split equally, by exact amounts, by percentage or by shares, as noted on it. Each person's exact share in dollars is listed; when an amount doesn't divide evenly, the extra cents go to whoever was closest to the next cent.";
 
   const lines = [
     `Tabmates group: ${group.name}`,
     `Status: ${STATUS[group.status]}`,
-    currency.code === 'USD' ? 'Currency: US dollars' : `Currency: ${currency.name}s (${currency.code})`,
+    `Currency: ${currency.plural} (${currency.code})`,
     `Members (${members.length}): ${memberNames.join(', ')}`,
     '',
     'How Tabmates calculates:',

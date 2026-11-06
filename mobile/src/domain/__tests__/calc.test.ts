@@ -86,6 +86,14 @@ describe('whole-unit currencies', () => {
     expect(applyKey('5', '00', true)).toBe('0');
   });
 
+  it('allows two more whole digits when asked (₩2,500,000)', () => {
+    let expr = '';
+    for (const k of ['2', '5', '00', '00', '00'] as CalcKey[]) expr = applyKey(expr, k, false, 9);
+    expect(expr).toBe('25000000');
+    expect(applyKey('9999999', '9')).toBe('9999999');
+    expect(applyKey('9999999', '9', false, 9)).toBe('99999999');
+  });
+
   it('rounds results to whole units with a step of 100', () => {
     expect(evaluateCents('1000÷3', 100)).toBe(33_300);
     expect(evaluateCents('1000÷6', 100)).toBe(16_700);

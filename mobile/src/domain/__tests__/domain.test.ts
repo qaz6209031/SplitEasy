@@ -256,7 +256,7 @@ describe('split methods', () => {
 
 describe('currencies', () => {
   it('knows USD and TWD, and treats a missing currency as USD', () => {
-    expect(CURRENCIES.map((c) => c.code)).toEqual(['USD', 'TWD']);
+    expect(CURRENCIES.map((c) => c.code)).toEqual(['USD', 'TWD', 'JPY', 'KRW', 'EUR', 'THB']);
     expect(currencyOf(null)).toBe(USD);
     expect(currencyOf(undefined)).toBe(USD);
     expect(TWD.symbol).toBe('NT$');
@@ -271,8 +271,18 @@ describe('currencies', () => {
     expect(formatMoney(1250, TWD)).toBe('NT$12.50');
   });
 
+  it('formats yen and won whole, euros and baht with cents', () => {
+    expect(formatMoney(1_234_500, currencyOf('JPY'))).toBe('¥12,345');
+    expect(formatMoney(250_000_000, currencyOf('KRW'))).toBe('₩2,500,000');
+    expect(formatMoney(1234, currencyOf('EUR'))).toBe('€12.34');
+    expect(formatMoney(5950, currencyOf('THB'))).toBe('฿59.50');
+    expect(parseCents('¥1200', currencyOf('JPY'))).toBe(120_000);
+    expect(parseCents('12.5', currencyOf('KRW'))).toBeNull();
+    expect(parseCents('€12.50', currencyOf('EUR'))).toBe(1250);
+  });
+
   it('formats an unknown code readably', () => {
-    expect(formatMoney(1234, currencyOf('EUR'))).toBe('EUR 12.34');
+    expect(formatMoney(1234, currencyOf('GBP'))).toBe('GBP 12.34');
   });
 
   it('edits and parses TWD as whole dollars', () => {
@@ -330,7 +340,7 @@ describe('currencies', () => {
 
   it('labels the copied summary with the currency', () => {
     const text = groupSummaryText({ group: { name: 'Taipei', status: 'active', currency: 'TWD' }, members: [], expenses: [], settlements: [], myId: null });
-    expect(text).toContain('Currency: New Taiwan Dollars (TWD)');
+    expect(text).toContain('Currency: New Taiwan dollars (TWD)');
     expect(text).toContain('NT$0');
     expect(text).not.toContain('$0.00');
   });

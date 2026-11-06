@@ -12,7 +12,7 @@ import { assignStampColors, colors, fonts, radius, space, type } from '@/compone
 import { Button, LinkButton, List, NavBar, Row, SegmentedControl, T2, TextField } from '@/components/ui';
 import * as repo from '@/data/repository';
 import type { Profile } from '@/data/types';
-import { applyKey, evaluateCents, hasOperator, spaced, type CalcKey } from '@/domain/calc';
+import { applyKey, evaluateCents, hasOperator, MAX_WHOLE_DIGITS, spaced, type CalcKey } from '@/domain/calc';
 import { currencyOf, editableString, formatMoney, parseCents, stepOf, USD, type Currency } from '@/domain/money';
 import { computeSplit, formatHundredths, initialInputs, inputsFromShares, type SplitMethod, type SplitResult } from '@/domain/splits';
 import { userMessage } from '@/lib/supabase';
@@ -161,7 +161,7 @@ export default function ExpenseFormScreen() {
 
   function press(key: CalcKey) {
     if (!editing) return;
-    const expr = applyKey(editing.expr, key, editing.fresh);
+    const expr = applyKey(editing.expr, key, editing.fresh, currency.decimals === 0 ? MAX_WHOLE_DIGITS + 2 : MAX_WHOLE_DIGITS);
     setEditing({ ...editing, expr, fresh: false });
     commit(editing.field, expr);
   }
