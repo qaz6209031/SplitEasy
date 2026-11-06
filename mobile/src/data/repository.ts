@@ -70,6 +70,12 @@ export async function fetchMembers(groupId: string): Promise<Profile[]> {
   return rows.map((r) => r.profile);
 }
 
+/** Profiles by id: people who left a group but still appear in its expenses or payments. */
+export async function fetchProfiles(ids: string[]): Promise<Profile[]> {
+  if (ids.length === 0) return [];
+  return check(await supabase.from('profiles').select().in('id', ids));
+}
+
 export async function fetchExpenses(groupId: string): Promise<Expense[]> {
   return check(
     await supabase.from('expenses').select(expenseColumns).eq('group_id', groupId).order('created_at', { ascending: false }),
@@ -118,6 +124,11 @@ export async function deleteExpense(id: string): Promise<void> {
 
 export async function startSettlement(groupId: string): Promise<void> {
   check(await supabase.rpc('start_settlement', { p_group_id: groupId }));
+}
+
+/** Leaves the group; the last member to leave deletes it. */
+export async function leaveGroup(groupId: string): Promise<'left' | 'deleted'> {
+  return check(await supabase.rpc('leave_group', { p_group_id: groupId }));
 }
 
 export async function reopenGroup(groupId: string): Promise<void> {

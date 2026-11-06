@@ -6,6 +6,7 @@ import * as repo from '@/data/repository';
 import type { Expense, Group, Profile, Settlement } from '@/data/types';
 import { netBalances } from '@/domain/balances';
 import { simplifyDebts, type Payment } from '@/domain/debts';
+import { peopleInHistory } from '@/domain/membership';
 import { userMessage } from '@/lib/supabase';
 
 /** Loads one group (members, expenses, payments) and exposes the settle-up actions. */
@@ -14,6 +15,8 @@ export function useGroupDetail(groupId: string, onChange?: () => void) {
   const dialog = useDialog();
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Profile[]>([]);
+  /** People who left but still appear in the group's expenses or payments, for their names. */
+  const [formerMembers, setFormerMembers] = useState<Profile[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -28,8 +31,12 @@ export function useGroupDetail(groupId: string, onChange?: () => void) {
         repo.fetchExpenses(groupId),
         repo.fetchSettlements(groupId),
       ]);
+      const memberIds = new Set(m.map((p) => p.id));
+      const formerIds = [...peopleInHistory(e, s)].filter((personId) => !memberIds.has(personId));
+      const former = await repo.fetchProfiles(formerIds);
       setGroup(g);
       setMembers(m);
+      setFormerMembers(former);
       setExpenses(e);
       setSettlements(s);
     } catch (error) {
@@ -64,6 +71,7 @@ export function useGroupDetail(groupId: string, onChange?: () => void) {
   return {
     group,
     members,
+    formerMembers,
     expenses,
     settlements,
     loaded,
@@ -75,5 +83,19 @@ export function useGroupDetail(groupId: string, onChange?: () => void) {
     startSettlement: () => run(() => repo.startSettlement(groupId), true),
     reopen: () => run(() => repo.reopenGroup(groupId), true),
     markPaid: (payment: Payment) => run(() => repo.recordSettlement(groupId, payment)),
+    /** Leaves (or, as the last member, deletes) the group. Resolves true once it's done. */
+    leave: async () => {
+      setUpdatingStatus(true);
+      try {
+        await repo.leaveGroup(groupId);
+        onChange?.();
+        return true;
+      } catch (error) {
+        await dialog.alert("Couldn't leave group", userMessage(error));
+        return false;
+      } finally {
+        setUpdatingStatus(false);
+      }
+    },
   };
 }
